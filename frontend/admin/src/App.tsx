@@ -7,6 +7,7 @@ function App() {
 
   return (
     <div className="App">
+      <div className="bg-red-500 text-white p-4">Test Tailwind</div>
       <h1>Lista rezerwacji</h1>
       <BookingList workshopId={workshopId} />
     </div>
