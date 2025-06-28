@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using WorkshopBooker.Infrastructure.Persistence;
 using WorkshopBooker.Application;
+using WorkshopBooker.Infrastructure;
+using WorkshopBooker.Infrastructure.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +16,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Po linii z AddDbContext
 builder.Services.AddScoped<WorkshopBooker.Application.Common.Interfaces.IApplicationDbContext>(provider =>
     provider.GetRequiredService<WorkshopBooker.Infrastructure.Persistence.ApplicationDbContext>());
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
+builder.Services.AddInfrastructure();
 // Dla MediatR (po utworzeniu IApplicationMarker)
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(WorkshopBooker.Application.IApplicationMarker).Assembly));
 // -----------------------------------------------------------
@@ -26,7 +30,7 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod();
     });
 });
-builder.Services.AddControllers(); // Dodaj tê liniê
+builder.Services.AddControllers(); // Dodaj tÃª liniÃª
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -42,9 +46,9 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("AllowDevelopmentClients");
 
-app.UseRouting(); // Dodaj tê liniê
-app.UseAuthorization(); // Dodaj tê liniê
+app.UseRouting(); // Dodaj tÃª liniÃª
+app.UseAuthorization(); // Dodaj tÃª liniÃª
 
-app.MapControllers(); // Dodaj tê liniê zamiast kodu weatherforecast
+app.MapControllers(); // Dodaj tÃª liniÃª zamiast kodu weatherforecast
 
 app.Run();
