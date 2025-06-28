@@ -2,6 +2,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using WorkshopBooker.Application.Auth.Commands.Register;
+using WorkshopBooker.Application.Auth.Dtos;
+using WorkshopBooker.Application.Auth.Queries.Login;
 
 namespace WorkshopBooker.Api.Controllers;
 
@@ -21,5 +23,13 @@ public class AuthController : ControllerBase
     {
         await _sender.Send(command);
         return Ok();
+    }
+
+    [HttpPost("login")]
+    public async Task<IActionResult> Login(LoginQuery query)
+    {
+        var token = await _sender.Send(query);
+        var response = new AuthResponse(token);
+        return Ok(response);
     }
 }
