@@ -1,0 +1,51 @@
+﻿// src/WorkshopBooker.Domain/Entities/Workshop.cs
+
+namespace WorkshopBooker.Domain.Entities;
+
+public class Workshop
+{
+    // Klucz główny. Używamy Guid, ponieważ jest globalnie unikalny, 
+    // co jest świetne dla systemów rozproszonych i API.
+    public Guid Id { get; private set; }
+
+    // Nazwa warsztatu - wymagana.
+    public string Name { get; private set; }
+
+    // Opis warsztatu - może być dłuższy.
+    public string Description { get; private set; }
+
+    // Dane kontaktowe i adresowe - na razie jako proste stringi,
+    // w przyszłości można rozbić na osobne obiekty (Value Objects).
+    public string? PhoneNumber { get; private set; }
+    public string? Email { get; private set; }
+    public string? Address { get; private set; }
+
+    // Daty audytowe - dobra praktyka, by wiedzieć kiedy rekord powstał i był modyfikowany.
+    public DateTime CreatedAt { get; private set; }
+    public DateTime UpdatedAt { get; private set; }
+
+    // Prywatny konstruktor dla Entity Framework Core
+    private Workshop() { }
+
+    // Publiczny konstruktor do tworzenia nowych warsztatów w kodzie.
+    // Gwarantuje, że warsztat zawsze będzie miał ID i nazwę.
+    public Workshop(Guid id, string name, string description)
+    {
+        Id = id;
+        Name = name;
+        Description = description;
+        CreatedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    // Metoda do aktualizacji danych warsztatu
+    public void Update(string name, string description, string? phoneNumber, string? email, string? address)
+    {
+        Name = name;
+        Description = description;
+        PhoneNumber = phoneNumber;
+        Email = email;
+        Address = address;
+        UpdatedAt = DateTime.UtcNow;
+    }
+}

@@ -1,0 +1,6 @@
+@WorkshopBooker.Api_HostAddress = http://localhost:5197
+
+GET {{WorkshopBooker.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
