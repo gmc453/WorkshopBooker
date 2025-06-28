@@ -19,9 +19,9 @@ builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Works
 // -----------------------------------------------------------
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowNextJsClient", policy =>
+    options.AddPolicy("AllowDevelopmentClients", policy =>
     {
-        policy.WithOrigins("http://localhost:3000") // Adres serwera deweloperskiego Next.js
+        policy.WithOrigins("http://localhost:3000", "http://localhost:5173")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -40,7 +40,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseCors("AllowNextJsClient");
+app.UseCors("AllowDevelopmentClients");
 
 app.UseRouting(); // Dodaj tê liniê
 app.UseAuthorization(); // Dodaj tê liniê

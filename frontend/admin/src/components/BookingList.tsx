@@ -1,14 +1,7 @@
-import { FC } from 'react'
+import type { FC } from 'react'
 import { useWorkshopBookings } from '../hooks/useWorkshopBookings'
 
-interface Booking {
-  id: string
-  bookingDateTime: string
-  status: string
-  serviceId: string
-  serviceName: string
-  servicePrice: number
-}
+import type { Booking } from '../types/booking'
 
 type BookingListProps = {
   workshopId: string
