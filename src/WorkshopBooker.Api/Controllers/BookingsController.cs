@@ -6,6 +6,8 @@ using WorkshopBooker.Application.Bookings.Dtos;
 using WorkshopBooker.Application.Bookings.Queries.GetBookingsForWorkshop;
 using WorkshopBooker.Application.Bookings.Queries.GetMyBookings;
 using System.Security.Claims;
+using WorkshopBooker.Application.Bookings.Commands.ConfirmBooking;
+using WorkshopBooker.Application.Bookings.Commands.CancelBooking;
 
 namespace WorkshopBooker.Api.Controllers;
 
@@ -70,5 +72,21 @@ public class BookingsController : ControllerBase
     {
         var bookings = await _sender.Send(new GetMyBookingsQuery());
         return Ok(bookings);
+    }
+
+    [HttpPost("~/api/bookings/{id}/confirm")]
+    [Authorize]
+    public async Task<IActionResult> ConfirmBooking(Guid id)
+    {
+        await _sender.Send(new ConfirmBookingCommand(id));
+        return NoContent();
+    }
+
+    [HttpPost("~/api/bookings/{id}/cancel")]
+    [Authorize]
+    public async Task<IActionResult> CancelBooking(Guid id)
+    {
+        await _sender.Send(new CancelBookingCommand(id));
+        return NoContent();
     }
 }

@@ -10,7 +10,7 @@ type CreateBookingParams = {
 };
 
 export function useCreateBooking() {
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async (params: CreateBookingParams) => {
       const response = await apiClient.post("/api/bookings", params);
       return response.data;
@@ -19,4 +19,10 @@ export function useCreateBooking() {
       console.error("Błąd podczas tworzenia rezerwacji:", error);
     }
   });
+  
+  return {
+    mutate: mutation.mutate,
+    isLoading: mutation.isPending,
+    error: mutation.error
+  };
 } 
