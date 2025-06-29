@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using WorkshopBooker.Application.Common.Interfaces;
 
+namespace WorkshopBooker.Application.Workshops.Commands.DeleteWorkshop;
+
 public class DeleteWorkshopCommandHandler : IRequestHandler<DeleteWorkshopCommand>
 {
     private readonly IApplicationDbContext _context;

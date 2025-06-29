@@ -1,10 +1,13 @@
 ﻿// src/WorkshopBooker.Api/Controllers/WorkshopsController.cs
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using WorkshopBooker.Application.Workshops.Commands.CreateWorkshop;
 using WorkshopBooker.Application.Workshops.Commands.UpdateWorkshop;
+using WorkshopBooker.Application.Workshops.Commands.DeleteWorkshop;
 using WorkshopBooker.Application.Workshops.Queries.GetWorkshopById;
 using WorkshopBooker.Application.Workshops.Queries.GetWorkshops;
+using WorkshopBooker.Application.Workshops.Queries.GetMyWorkshops;
 
 namespace WorkshopBooker.Api.Controllers;
 
@@ -45,6 +48,15 @@ public class WorkshopsController : ControllerBase
         // Zwracamy wtedy standardowy kod HTTP 404 Not Found.
         return workshop is not null ? Ok(workshop) : NotFound();
     }
+    
+    [HttpGet("my")]
+    [Authorize]
+    public async Task<IActionResult> GetMyWorkshops()
+    {
+        var workshops = await _sender.Send(new GetMyWorkshopsQuery());
+        return Ok(workshops);
+    }
+    
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(Guid id, UpdateWorkshopCommand command)
     {

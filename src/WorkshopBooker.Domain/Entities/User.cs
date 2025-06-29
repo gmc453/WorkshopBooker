@@ -8,6 +8,9 @@ public class User
     public string HashedPassword { get; private set; } = null!;
     public string Role { get; private set; } = null!;
 
+    // Relacja do warsztatów, które należą do tego użytkownika
+    public virtual ICollection<Workshop> Workshops { get; private set; } = new List<Workshop>();
+
     private User() { }
 
     public User(Guid id, string email, string hashedPassword, string role)

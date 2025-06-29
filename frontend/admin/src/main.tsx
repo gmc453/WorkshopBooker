@@ -8,7 +8,8 @@ import './index.css'
 // Importujemy strony
 import DashboardPage from './pages/DashboardPage'
 import LoginPage from './pages/LoginPage'
-import AuthGuard from './components/AuthGuard'
+import { AuthProvider } from './context/AuthContext'
+import ProtectedRoute from './components/ProtectedRoute'
 
 const queryClient = new QueryClient()
 
@@ -16,13 +17,11 @@ const queryClient = new QueryClient()
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <AuthGuard />,
-    children: [
-      {
-        path: '',
-        element: <DashboardPage />
-      }
-    ]
+    element: (
+      <ProtectedRoute>
+        <DashboardPage />
+      </ProtectedRoute>
+    )
   },
   {
     path: '/login',
@@ -33,7 +32,9 @@ const router = createBrowserRouter([
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   </StrictMode>,

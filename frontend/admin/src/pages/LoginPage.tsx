@@ -1,7 +1,8 @@
 import type { FC, FormEvent } from 'react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import apiClient from '../api/axiosConfig'
+import { useAuth } from '../context/AuthContext'
 
 const LoginPage: FC = () => {
   const [email, setEmail] = useState('')
@@ -9,6 +10,14 @@ const LoginPage: FC = () => {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
+  const { isAuthenticated, login } = useAuth()
+
+  // Jeśli użytkownik jest już zalogowany, przekieruj go na stronę główną
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/')
+    }
+  }, [isAuthenticated, navigate])
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault()
@@ -21,14 +30,10 @@ const LoginPage: FC = () => {
         password
       })
       
-      // Zapisujemy token w localStorage
-      const token = response.data.token
-      localStorage.setItem('authToken', token)
+      // Używamy funkcji login z kontekstu autentykacji
+      login(response.data.token)
       
-      console.log('Zalogowano pomyślnie, token:', token)
-      
-      // Przekierowanie na stronę główną
-      navigate('/')
+      // Przekierowanie na stronę główną nastąpi automatycznie dzięki useEffect
     } catch (err) {
       console.error('Błąd logowania:', err)
       setError('Nieprawidłowy email lub hasło')

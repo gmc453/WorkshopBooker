@@ -24,6 +24,10 @@ public class Workshop
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
+    // Relacja do użytkownika (właściciela warsztatu)
+    public Guid? UserId { get; private set; }
+    public User? User { get; private set; }
+
     // Prywatny konstruktor dla Entity Framework Core
     private Workshop() { }
 
@@ -46,6 +50,13 @@ public class Workshop
         PhoneNumber = phoneNumber;
         Email = email;
         Address = address;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    // Metoda do przypisania właściciela warsztatu
+    public void AssignOwner(Guid userId)
+    {
+        UserId = userId;
         UpdatedAt = DateTime.UtcNow;
     }
 }
