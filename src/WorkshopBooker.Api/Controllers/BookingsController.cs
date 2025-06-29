@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using WorkshopBooker.Application.Bookings.Commands.CreateBooking;
 using WorkshopBooker.Application.Bookings.Dtos;
 using WorkshopBooker.Application.Bookings.Queries.GetBookingsForWorkshop;
@@ -18,6 +19,7 @@ public class BookingsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize]
     public async Task<IActionResult> Create(Guid serviceId, CreateBookingCommand command)
     {
         var fullCommand = command with { ServiceId = serviceId };

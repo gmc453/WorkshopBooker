@@ -1,4 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using WorkshopBooker.Infrastructure.Persistence;
 using WorkshopBooker.Application;
 using WorkshopBooker.Infrastructure;
@@ -31,6 +34,21 @@ builder.Services.AddCors(options =>
     });
 });
 builder.Services.AddControllers(); // Dodaj tê liniê
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+            ValidAudience = builder.Configuration["JwtSettings:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Secret"]!))
+        };
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -47,6 +65,7 @@ app.UseHttpsRedirection();
 app.UseCors("AllowDevelopmentClients");
 
 app.UseRouting(); // Dodaj tê liniê
+app.UseAuthentication();
 app.UseAuthorization(); // Dodaj tê liniê
 
 app.MapControllers(); // Dodaj tê liniê zamiast kodu weatherforecast
