@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using WorkshopBooker.Application.Bookings.Commands.CreateBooking;
 using WorkshopBooker.Application.Bookings.Dtos;
 using WorkshopBooker.Application.Bookings.Queries.GetBookingsForWorkshop;
+using WorkshopBooker.Application.Bookings.Queries.GetMyBookings;
 using System.Security.Claims;
 
 namespace WorkshopBooker.Api.Controllers;
@@ -60,6 +61,14 @@ public class BookingsController : ControllerBase
     public async Task<IActionResult> GetForWorkshop(Guid workshopId)
     {
         var bookings = await _sender.Send(new GetBookingsForWorkshopQuery(workshopId));
+        return Ok(bookings);
+    }
+
+    [HttpGet("~/api/bookings/my")]
+    [Authorize]
+    public async Task<IActionResult> GetMyBookings()
+    {
+        var bookings = await _sender.Send(new GetMyBookingsQuery());
         return Ok(bookings);
     }
 }
