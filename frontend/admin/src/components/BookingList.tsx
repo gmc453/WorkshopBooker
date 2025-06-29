@@ -1,7 +1,8 @@
-
 import type { FC } from 'react'
 import { Calendar, Clock, CreditCard, CheckCircle, AlertCircle, XCircle, Loader2 } from 'lucide-react'
 import { useWorkshopBookings } from '../hooks/useWorkshopBookings'
+import { useConfirmBooking } from '../hooks/useConfirmBooking'
+import { useCancelBooking } from '../hooks/useCancelBooking'
 
 import type { Booking } from '../types/booking'
 
@@ -11,6 +12,8 @@ type BookingListProps = {
 
 const BookingList: FC<BookingListProps> = ({ workshopId }) => {
   const { data, isLoading, isError } = useWorkshopBookings(workshopId)
+  const { mutate: confirmBooking, isPending: isConfirming } = useConfirmBooking(workshopId)
+  const { mutate: cancelBooking, isPending: isCancelling } = useCancelBooking(workshopId)
 
   const getStatusIcon = (status: string | number) => {
   const statusValue = typeof status === 'number' ? status : parseInt(status);
@@ -130,6 +133,7 @@ const getStatusColor = (status: string | number) => {
       <div className="grid gap-4">
         {data.map((booking: Booking) => {
           const { date, time } = formatDateTime(booking.bookingDateTime)
+          const statusValue = typeof booking.status === 'number' ? booking.status : parseInt(booking.status);
           
           return (
             <div
@@ -167,6 +171,30 @@ const getStatusColor = (status: string | number) => {
                     <span>{formatPrice(booking.servicePrice)}</span>
                   </div>
                 </div>
+              </div>
+              
+              <div className="mt-4 flex justify-end space-x-3">
+                {statusValue === 0 && (
+                  <button
+                    onClick={() => confirmBooking(booking.id)}
+                    disabled={isConfirming || isCancelling}
+                    className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+                  >
+                    {isConfirming && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
+                    <span>Potwierdź</span>
+                  </button>
+                )}
+                
+                {(statusValue === 0 || statusValue === 1) && (
+                  <button
+                    onClick={() => cancelBooking(booking.id)}
+                    disabled={isConfirming || isCancelling}
+                    className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+                  >
+                    {isCancelling && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
+                    <span>Anuluj</span>
+                  </button>
+                )}
               </div>
             </div>
           )

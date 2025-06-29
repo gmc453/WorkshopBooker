@@ -12,7 +12,8 @@ type CreateBookingParams = {
 export function useCreateBooking() {
   const mutation = useMutation({
     mutationFn: async (params: CreateBookingParams) => {
-      const response = await apiClient.post("/api/bookings", params);
+      const { serviceId, bookingDateTime } = params;
+      const response = await apiClient.post(`/api/services/${serviceId}/bookings`, { bookingDateTime });
       return response.data;
     },
     onError: (error: AxiosError) => {

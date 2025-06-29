@@ -7,12 +7,13 @@ export type Booking = {
   id: string;
   serviceId: string;
   serviceName: string;
-  workshopId: string;
-  workshopName: string;
+  workshopId?: string;
+  workshopName?: string;
   bookingDateTime: string;
-  status: string;
-  price: number;
-  durationInMinutes: number;
+  status: number;
+  servicePrice: number;
+  price?: number;
+  durationInMinutes?: number;
 };
 
 export function useMyBookings() {
