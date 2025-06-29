@@ -27,6 +27,9 @@ public class Workshop
     // Relacja do użytkownika (właściciela warsztatu)
     public Guid? UserId { get; private set; }
     public User? User { get; private set; }
+    
+    // Kolekcja usług oferowanych przez warsztat
+    public ICollection<Service> Services { get; private set; } = new List<Service>();
 
     // Prywatny konstruktor dla Entity Framework Core
     private Workshop() { }

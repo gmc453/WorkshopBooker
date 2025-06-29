@@ -33,9 +33,9 @@ public class WorkshopsController : ControllerBase
         return CreatedAtAction(nameof(Create), new { id = workshopId }, workshopId);
     }
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] string? searchTerm)
     {
-        var workshops = await _sender.Send(new GetWorkshopsQuery());
+        var workshops = await _sender.Send(new GetWorkshopsQuery(searchTerm));
         return Ok(workshops);
     }
     [HttpGet("{id}")]

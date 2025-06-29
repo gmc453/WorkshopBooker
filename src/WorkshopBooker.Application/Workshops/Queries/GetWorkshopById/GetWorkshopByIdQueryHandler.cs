@@ -2,6 +2,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WorkshopBooker.Application.Common.Interfaces;
+using WorkshopBooker.Application.Services.Dtos;
 using WorkshopBooker.Application.Workshops.Dtos;
 
 namespace WorkshopBooker.Application.Workshops.Queries.GetWorkshopById;
@@ -18,13 +19,22 @@ public class GetWorkshopByIdQueryHandler : IRequestHandler<GetWorkshopByIdQuery,
     public async Task<WorkshopDto?> Handle(GetWorkshopByIdQuery request, CancellationToken cancellationToken)
     {
         var workshop = await _context.Workshops
+            .Include(w => w.Services) // Dołączamy usługi do zapytania
             .Where(w => w.Id == request.Id) // Filtrujemy po ID z zapytania
             .Select(w => new WorkshopDto // Mapujemy na DTO
             {
                 Id = w.Id,
                 Name = w.Name,
                 Description = w.Description,
-                Address = w.Address
+                Address = w.Address,
+                Services = w.Services.Select(s => new ServiceDto
+                {
+                    Id = s.Id,
+                    Name = s.Name,
+                    Description = s.Description,
+                    Price = s.Price,
+                    DurationInMinutes = s.DurationInMinutes
+                }).ToList()
             })
             .FirstOrDefaultAsync(cancellationToken); // Pobieramy pierwszy pasujący element lub null
 

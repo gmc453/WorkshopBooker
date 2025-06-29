@@ -18,7 +18,20 @@ public class GetWorkshopsQueryHandler : IRequestHandler<GetWorkshopsQuery, List<
     public async Task<List<WorkshopDto>> Handle(GetWorkshopsQuery request, CancellationToken cancellationToken)
     {
         // Używamy LINQ do pobrania danych z bazy.
-        var workshops = await _context.Workshops
+        var query = _context.Workshops.AsQueryable();
+        
+        // Filtrujemy po SearchTerm, jeśli został podany
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            var searchTerm = request.SearchTerm.ToLower();
+            query = query.Where(w => 
+                w.Name.ToLower().Contains(searchTerm) || 
+                w.Description.ToLower().Contains(searchTerm) ||
+                (w.Address != null && w.Address.ToLower().Contains(searchTerm))
+            );
+        }
+        
+        var workshops = await query
             // Metoda .Select() jest bardzo wydajna. Tłumaczy wyrażenie lambda na zapytanie SQL,
             // dzięki czemu z bazy danych pobierane są tylko te kolumny, których potrzebujemy w DTO.
             .Select(w => new WorkshopDto

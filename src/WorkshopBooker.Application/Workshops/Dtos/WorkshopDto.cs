@@ -1,5 +1,7 @@
 ﻿// src/WorkshopBooker.Application/Workshops/Dtos/WorkshopDto.cs
 
+using WorkshopBooker.Application.Services.Dtos;
+
 namespace WorkshopBooker.Application.Workshops.Dtos;
 
 // To jest publiczny kontrakt naszej aplikacji.
@@ -10,4 +12,5 @@ public record WorkshopDto
     public required string Name { get; init; }
     public required string Description { get; init; }
     public string? Address { get; init; }
+    public List<ServiceDto> Services { get; init; } = new();
 }
