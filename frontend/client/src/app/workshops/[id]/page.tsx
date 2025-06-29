@@ -1,12 +1,32 @@
 "use client";
 
+import { useState } from "react";
 import { useWorkshopDetails } from "../../hooks/useWorkshopDetails";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { Service } from "../../types/workshop";
+import BookingModal from "../../components/BookingModal";
+import { useAuth } from "../../../context/AuthContext";
 
 export default function WorkshopDetailsPage() {
   const params = useParams();
   const id = params.id as string;
   const { workshop, loading, error } = useWorkshopDetails(id);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const { isAuthenticated } = useAuth();
+  const router = useRouter();
+
+  const handleBookingClick = (service: Service) => {
+    if (!isAuthenticated) {
+      // Jeśli użytkownik nie jest zalogowany, przekieruj go na stronę logowania
+      router.push("/login");
+      return;
+    }
+
+    // Jeśli użytkownik jest zalogowany, otwórz modal rezerwacji
+    setSelectedService(service);
+    setIsBookingModalOpen(true);
+  };
 
   if (loading) {
     return (
@@ -65,7 +85,10 @@ export default function WorkshopDetailsPage() {
                     {service.durationInMinutes} min
                   </p>
                 </div>
-                <button className="w-full mt-4 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                <button 
+                  onClick={() => handleBookingClick(service)}
+                  className="w-full mt-4 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                >
                   Zarezerwuj
                 </button>
               </div>
@@ -77,6 +100,13 @@ export default function WorkshopDetailsPage() {
           </p>
         )}
       </div>
+
+      {isBookingModalOpen && selectedService && (
+        <BookingModal 
+          service={selectedService} 
+          onClose={() => setIsBookingModalOpen(false)} 
+        />
+      )}
     </div>
   );
 } 
