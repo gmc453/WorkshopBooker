@@ -1,7 +1,12 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import apiClient from "../api/axiosConfig";
+// Update the import path if the file is located elsewhere, for example:
+import apiClient from "../../api/axiosConfig";
+// Or, if the file does not exist, create 'axiosConfig.ts' in the correct folder with the following content:
+// import axios from "axios";
+// const apiClient = axios.create({ baseURL: "http://localhost:3000" });
+// export default apiClient;
 
 export type Slot = {
   id: string;

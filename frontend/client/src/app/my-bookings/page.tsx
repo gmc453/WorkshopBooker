@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import { useMyBookings, Booking } from "../hooks/useMyBookings";
-import { format } from "date-fns";
+import { format, differenceInMinutes } from "date-fns";
 import { pl } from "date-fns/locale";
 
 export default function MyBookingsPage() {
@@ -65,6 +65,13 @@ export default function MyBookingsPage() {
     }
   };
 
+  // Funkcja pomocnicza do obliczania czasu trwania w minutach
+  const getDuration = (startTime: string, endTime: string): number => {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    return differenceInMinutes(end, start);
+  };
+
   return (
     <div className="container mx-auto p-8">
       <h1 className="text-3xl font-bold mb-8">Moje rezerwacje</h1>
@@ -83,13 +90,11 @@ export default function MyBookingsPage() {
                     <p className="text-gray-600">{booking.workshopName}</p>
                   )}
                   <p className="text-sm text-gray-500 mt-2">
-                    {format(new Date(booking.bookingDateTime), "PPpp", { locale: pl })}
+                    {format(new Date(booking.slotStartTime), "PPpp", { locale: pl })}
                   </p>
-                  {booking.durationInMinutes && (
-                    <p className="text-sm text-gray-500">
-                      Czas trwania: {booking.durationInMinutes} min
-                    </p>
-                  )}
+                  <p className="text-sm text-gray-500">
+                    Czas trwania: {getDuration(booking.slotStartTime, booking.slotEndTime)} min
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-lg">{booking.servicePrice.toFixed(2)} zł</p>

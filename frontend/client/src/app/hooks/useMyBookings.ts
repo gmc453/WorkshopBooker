@@ -9,7 +9,8 @@ export type Booking = {
   serviceName: string;
   workshopId?: string;
   workshopName?: string;
-  bookingDateTime: string;
+  slotStartTime: string;
+  slotEndTime: string;
   status: number;
   servicePrice: number;
   price?: number;

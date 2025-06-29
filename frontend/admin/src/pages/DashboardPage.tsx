@@ -5,7 +5,8 @@ import Header from '../components/Header'
 import '../App.css'
 import type { FC } from 'react'
 import { useMyWorkshops } from '../hooks/useMyWorkshops'
-import { Loader2, Building } from 'lucide-react'
+import { Loader2, Building, Calendar } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 const DashboardPage: FC = () => {
   const [selectedWorkshopId, setSelectedWorkshopId] = useState<string | null>(null)
@@ -20,6 +21,28 @@ const DashboardPage: FC = () => {
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Zarządzanie rezerwacjami</h2>
           <p className="text-gray-600">Przeglądaj i zarządzaj rezerwacjami w systemie</p>
+        </div>
+
+        {/* Skróty do najważniejszych funkcji */}
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Link to="/" className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all flex items-center">
+            <div className="bg-blue-100 rounded-full p-3 mr-4 text-blue-600">
+              <Building className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="font-medium">Rezerwacje</h3>
+              <p className="text-sm text-gray-500">Zarządzaj rezerwacjami</p>
+            </div>
+          </Link>
+          <Link to="/slots" className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all flex items-center">
+            <div className="bg-green-100 rounded-full p-3 mr-4 text-green-600">
+              <Calendar className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="font-medium">Dostępne terminy</h3>
+              <p className="text-sm text-gray-500">Zarządzaj slotami czasowymi</p>
+            </div>
+          </Link>
         </div>
 
         {/* Wybór warsztatu */}
