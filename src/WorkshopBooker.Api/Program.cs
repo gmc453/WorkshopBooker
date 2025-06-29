@@ -22,6 +22,8 @@ builder.Services.AddScoped<WorkshopBooker.Application.Common.Interfaces.IApplica
     provider.GetRequiredService<WorkshopBooker.Infrastructure.Persistence.ApplicationDbContext>());
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 builder.Services.AddInfrastructure();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<WorkshopBooker.Application.Common.Interfaces.ICurrentUserProvider, WorkshopBooker.Api.Services.CurrentUserProvider>();
 // Dla MediatR (po utworzeniu IApplicationMarker)
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(WorkshopBooker.Application.IApplicationMarker).Assembly));
 // -----------------------------------------------------------
