@@ -3,25 +3,28 @@
 import { useState } from "react";
 import { Service } from "../types/workshop";
 import { useCreateBooking } from "../hooks/useCreateBooking";
+import { useWorkshopSlots } from "../hooks/useWorkshopSlots";
 
 type BookingModalProps = {
   service: Service;
+  workshopId: string;
   onClose: () => void;
 };
 
-export default function BookingModal({ service, onClose }: BookingModalProps) {
-  const [bookingDateTime, setBookingDateTime] = useState("");
+export default function BookingModal({ service, workshopId, onClose }: BookingModalProps) {
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const { mutate, isLoading, error } = useCreateBooking();
+  const { data: slots } = useWorkshopSlots(workshopId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!bookingDateTime) {
+    if (!selectedSlotId) {
       return;
     }
 
     mutate(
-      { serviceId: service.id, bookingDateTime: new Date(bookingDateTime).toISOString() },
+      { serviceId: service.id, slotId: selectedSlotId },
       {
         onSuccess: () => {
           onClose();
@@ -31,10 +34,6 @@ export default function BookingModal({ service, onClose }: BookingModalProps) {
     );
   };
 
-  // Obliczamy minimalną datę (dzisiaj)
-  const today = new Date();
-  today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
-  const minDate = today.toISOString().slice(0, 16);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -63,18 +62,19 @@ export default function BookingModal({ service, onClose }: BookingModalProps) {
 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label htmlFor="bookingDateTime" className="block text-sm font-medium text-gray-700 mb-1">
-              Wybierz datę i godzinę
-            </label>
-            <input
-              type="datetime-local"
-              id="bookingDateTime"
-              value={bookingDateTime}
-              onChange={(e) => setBookingDateTime(e.target.value)}
-              min={minDate}
-              required
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-            />
+            <p className="text-sm font-medium text-gray-700 mb-2">Wybierz termin</p>
+            <div className="grid gap-2 max-h-60 overflow-y-auto">
+              {slots?.map(slot => (
+                <button
+                  type="button"
+                  key={slot.id}
+                  onClick={() => setSelectedSlotId(slot.id)}
+                  className={`p-2 border rounded ${selectedSlotId===slot.id? 'bg-blue-600 text-white':'bg-white'}`}
+                >
+                  {new Date(slot.startTime).toLocaleString()} - {new Date(slot.endTime).toLocaleTimeString()}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="flex justify-end space-x-3">
@@ -87,7 +87,7 @@ export default function BookingModal({ service, onClose }: BookingModalProps) {
             </button>
             <button
               type="submit"
-              disabled={isLoading || !bookingDateTime}
+              disabled={isLoading || !selectedSlotId}
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-blue-300"
             >
               {isLoading ? "Przetwarzanie..." : "Zatwierdź rezerwację"}

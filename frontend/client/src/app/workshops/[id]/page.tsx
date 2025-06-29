@@ -102,9 +102,10 @@ export default function WorkshopDetailsPage() {
       </div>
 
       {isBookingModalOpen && selectedService && (
-        <BookingModal 
-          service={selectedService} 
-          onClose={() => setIsBookingModalOpen(false)} 
+        <BookingModal
+          service={selectedService}
+          workshopId={id}
+          onClose={() => setIsBookingModalOpen(false)}
         />
       )}
     </div>

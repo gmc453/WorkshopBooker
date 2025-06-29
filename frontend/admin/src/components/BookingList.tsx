@@ -66,18 +66,21 @@ const getStatusColor = (status: string | number) => {
   }
 }
 
-  const formatDateTime = (dateTime: string) => {
-    const date = new Date(dateTime)
+  const formatDateTime = (start: string, end: string) => {
+    const date = new Date(start)
     return {
       date: date.toLocaleDateString('pl-PL', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
       }),
-      time: date.toLocaleTimeString('pl-PL', {
+      time: `${new Date(start).toLocaleTimeString('pl-PL', {
         hour: '2-digit',
         minute: '2-digit'
-      })
+      })} - ${new Date(end).toLocaleTimeString('pl-PL', {
+        hour: '2-digit',
+        minute: '2-digit'
+      })}`
     }
   }
 
@@ -132,7 +135,7 @@ const getStatusColor = (status: string | number) => {
       
       <div className="grid gap-4">
         {data.map((booking: Booking) => {
-          const { date, time } = formatDateTime(booking.bookingDateTime)
+          const { date, time } = formatDateTime(booking.slotStartTime, booking.slotEndTime)
           const statusValue = typeof booking.status === 'number' ? booking.status : parseInt(booking.status);
           
           return (
