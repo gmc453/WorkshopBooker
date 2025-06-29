@@ -25,21 +25,22 @@ public class Booking
     public Guid ServiceId { get; private set; }
     public Service Service { get; private set; } = null!;
 
-    // TODO: W przyszłości dodamy tu relację do Użytkownika
-    // public Guid UserId { get; private set; }
-    // public User User { get; private set; } = null!;
+    // Informacja o tym, który użytkownik dokonał rezerwacji
+    public Guid UserId { get; private set; }
+    public User User { get; private set; } = null!;
 
     // Daty audytowe
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
-    private Booking() {}
+    private Booking() { }
 
-    public Booking(Guid id, DateTime bookingDateTime, Guid serviceId)
+    public Booking(Guid id, DateTime bookingDateTime, Guid serviceId, Guid userId)
     {
         Id = id;
         BookingDateTime = bookingDateTime;
         ServiceId = serviceId;
+        UserId = userId;
         Status = BookingStatus.Requested;
         CreatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;

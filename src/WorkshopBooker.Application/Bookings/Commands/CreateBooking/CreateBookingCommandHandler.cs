@@ -8,10 +8,11 @@ namespace WorkshopBooker.Application.Bookings.Commands.CreateBooking;
 public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand, Guid>
 {
     private readonly IApplicationDbContext _context;
-
-    public CreateBookingCommandHandler(IApplicationDbContext context)
+    private readonly ICurrentUserProvider _currentUserProvider;
+    public CreateBookingCommandHandler(IApplicationDbContext context, ICurrentUserProvider currentUserProvider)
     {
         _context = context;
+        _currentUserProvider = currentUserProvider;
     }
 
     public async Task<Guid> Handle(CreateBookingCommand request, CancellationToken cancellationToken)
@@ -30,7 +31,13 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
             throw new Exception("Booking date cannot be in the past");
         }
 
-        var booking = new Booking(Guid.NewGuid(), request.BookingDateTime, request.ServiceId);
+        var userId = _currentUserProvider.UserId;
+        if (userId is null)
+        {
+            throw new Exception("User must be authenticated");
+        }
+
+        var booking = new Booking(Guid.NewGuid(), request.BookingDateTime, request.ServiceId, userId.Value);
         _context.Bookings.Add(booking);
         await _context.SaveChangesAsync(cancellationToken);
         return booking.Id;
