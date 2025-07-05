@@ -8,6 +8,7 @@ import './index.css'
 // Importujemy strony
 import DashboardPage from './pages/DashboardPage'
 import LoginPage from './pages/LoginPage'
+import SlotsPage from './pages/SlotsPage'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -20,6 +21,14 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <DashboardPage />
+      </ProtectedRoute>
+    )
+  },
+  {
+    path: '/slots',
+    element: (
+      <ProtectedRoute>
+        <SlotsPage />
       </ProtectedRoute>
     )
   },

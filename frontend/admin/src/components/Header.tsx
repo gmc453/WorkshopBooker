@@ -1,9 +1,11 @@
 import type { FC } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 
 const Header: FC = () => {
   const { logout } = useAuth()
+  const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
@@ -90,9 +92,69 @@ const Header: FC = () => {
           </button>
         </div>
         
+        {/* Desktop navigation */}
+        <nav className="hidden md:block mt-4">
+          <ul className="flex space-x-8">
+            <li>
+              <Link 
+                to="/" 
+                className={`py-2 px-1 font-medium text-sm border-b-2 ${
+                  location.pathname === '/' 
+                    ? 'border-blue-500 text-blue-600' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Rezerwacje
+              </Link>
+            </li>
+            <li>
+              <Link 
+                to="/slots" 
+                className={`py-2 px-1 font-medium text-sm border-b-2 ${
+                  location.pathname === '/slots' 
+                    ? 'border-blue-500 text-blue-600' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Zarządzanie slotami
+              </Link>
+            </li>
+          </ul>
+        </nav>
+        
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden mt-4 pb-2">
+          <div className="md:hidden mt-4 pb-2 space-y-3">
+            <nav className="border-t border-gray-200 dark:border-gray-700 pt-3 mb-3">
+              <ul className="space-y-2">
+                <li>
+                  <Link 
+                    to="/" 
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`block py-2 px-3 rounded-md ${
+                      location.pathname === '/' 
+                        ? 'bg-primary/10 text-primary' 
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
+                  >
+                    Rezerwacje
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    to="/slots"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`block py-2 px-3 rounded-md ${
+                      location.pathname === '/slots' 
+                        ? 'bg-primary/10 text-primary' 
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
+                  >
+                    Zarządzanie slotami
+                  </Link>
+                </li>
+              </ul>
+            </nav>
             <button
               onClick={() => {
                 logout();
@@ -123,4 +185,4 @@ const Header: FC = () => {
   )
 }
 
-export default Header 
+export default Header

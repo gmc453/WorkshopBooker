@@ -26,11 +26,13 @@ public class GetMyBookingsQueryHandler : IRequestHandler<GetMyBookingsQuery, Lis
 
         var bookings = await _context.Bookings
             .Include(b => b.Service)
+            .Include(b => b.Slot)
             .Where(b => b.UserId == userId.Value)
             .Select(b => new BookingDto
             {
                 Id = b.Id,
-                BookingDateTime = b.BookingDateTime,
+                SlotStartTime = b.Slot.StartTime,
+                SlotEndTime = b.Slot.EndTime,
                 Status = b.Status,
                 ServiceId = b.ServiceId,
                 ServiceName = b.Service.Name,

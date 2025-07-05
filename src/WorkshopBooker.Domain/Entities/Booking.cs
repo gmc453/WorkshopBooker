@@ -14,9 +14,6 @@ public class Booking
 {
     public Guid Id { get; private set; }
 
-    // Data i godzina, na którą umówiono wizytę
-    public DateTime BookingDateTime { get; private set; }
-
     public BookingStatus Status { get; private set; }
 
     // --- Relacje ---
@@ -29,16 +26,20 @@ public class Booking
     public Guid UserId { get; private set; }
     public User User { get; private set; } = null!;
 
+    // Relacja 1-1 do slotu
+    public Guid SlotId { get; private set; }
+    public AvailableSlot Slot { get; private set; } = null!;
+
     // Daty audytowe
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
     private Booking() { }
 
-    public Booking(Guid id, DateTime bookingDateTime, Guid serviceId, Guid userId)
+    public Booking(Guid id, Guid slotId, Guid serviceId, Guid userId)
     {
         Id = id;
-        BookingDateTime = bookingDateTime;
+        SlotId = slotId;
         ServiceId = serviceId;
         UserId = userId;
         Status = BookingStatus.Requested;

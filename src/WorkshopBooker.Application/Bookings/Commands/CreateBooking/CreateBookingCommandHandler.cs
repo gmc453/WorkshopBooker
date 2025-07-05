@@ -17,18 +17,24 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
 
     public async Task<Guid> Handle(CreateBookingCommand request, CancellationToken cancellationToken)
     {
-        // Check if the service exists
-        var serviceExists = await _context.Services
-            .AnyAsync(s => s.Id == request.ServiceId, cancellationToken);
-        if (!serviceExists)
+        var service = await _context.Services
+            .Include(s => s.Workshop)
+            .FirstOrDefaultAsync(s => s.Id == request.ServiceId, cancellationToken);
+        if (service is null)
         {
             throw new Exception("Service not found");
         }
 
-        // Booking date cannot be in the past
-        if (request.BookingDateTime < DateTime.UtcNow)
+        var slot = await _context.AvailableSlots
+            .FirstOrDefaultAsync(s => s.Id == request.SlotId, cancellationToken);
+        if (slot is null || slot.Status != SlotStatus.Available)
         {
-            throw new Exception("Booking date cannot be in the past");
+            throw new Exception("Slot not available");
+        }
+
+        if (slot.WorkshopId != service.WorkshopId)
+        {
+            throw new Exception("Slot does not belong to service's workshop");
         }
 
         var userId = _currentUserProvider.UserId;
@@ -37,7 +43,8 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
             throw new Exception("User must be authenticated");
         }
 
-        var booking = new Booking(Guid.NewGuid(), request.BookingDateTime, request.ServiceId, userId.Value);
+        var booking = new Booking(Guid.NewGuid(), request.SlotId, request.ServiceId, userId.Value);
+        slot.Book();
         _context.Bookings.Add(booking);
         await _context.SaveChangesAsync(cancellationToken);
         return booking.Id;

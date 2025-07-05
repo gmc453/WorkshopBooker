@@ -6,14 +6,14 @@ import { AxiosError } from "axios";
 
 type CreateBookingParams = {
   serviceId: string;
-  bookingDateTime: string;
+  slotId: string;
 };
 
 export function useCreateBooking() {
   const mutation = useMutation({
     mutationFn: async (params: CreateBookingParams) => {
-      const { serviceId, bookingDateTime } = params;
-      const response = await apiClient.post(`/api/services/${serviceId}/bookings`, { bookingDateTime });
+      const { serviceId, slotId } = params;
+      const response = await apiClient.post(`/api/services/${serviceId}/bookings`, { slotId });
       return response.data;
     },
     onError: (error: AxiosError) => {

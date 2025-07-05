@@ -1,6 +1,7 @@
 export type Booking = {
   id: string
-  bookingDateTime: string
+  slotStartTime: string
+  slotEndTime: string
   status: string
   serviceId: string
   serviceName: string
