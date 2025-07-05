@@ -33,3 +33,15 @@ public class AuthController : ControllerBase
         return Ok(response);
     }
 }
+
+// Dodajemy nowy kontroler do sprawdzania stanu API
+[ApiController]
+[Route("api")]
+public class HealthController : ControllerBase
+{
+    [HttpGet("health")]
+    public IActionResult Check()
+    {
+        return Ok(new { status = "ok", timestamp = DateTime.UtcNow });
+    }
+}

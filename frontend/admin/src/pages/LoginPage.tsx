@@ -9,6 +9,7 @@ const LoginPage: FC = () => {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [apiStatus, setApiStatus] = useState<'idle' | 'checking' | 'online' | 'offline'>('idle')
   const navigate = useNavigate()
   const { isAuthenticated, login } = useAuth()
 
@@ -25,21 +26,74 @@ const LoginPage: FC = () => {
     setIsLoading(true)
 
     try {
+      console.log('Próba logowania z danymi:', { email, password: '***' })
+      
       const response = await apiClient.post('/api/auth/login', {
         email,
         password
       })
       
+      console.log('Odpowiedź z serwera:', response.data)
+      
+      // Upewnijmy się, że odpowiedź zawiera token
+      if (!response.data.token) {
+        console.error('Odpowiedź nie zawiera tokenu:', response.data)
+        setError('Błąd logowania: odpowiedź serwera nie zawiera tokenu autoryzacyjnego')
+        return
+      }
+      
       // Używamy funkcji login z kontekstu autentykacji
       login(response.data.token)
       
       // Przekierowanie na stronę główną nastąpi automatycznie dzięki useEffect
-    } catch (err) {
+    } catch (err: any) {
       console.error('Błąd logowania:', err)
-      setError('Nieprawidłowy email lub hasło')
+      
+      if (err.response) {
+        // Serwer zwrócił odpowiedź z kodem błędu
+        const status = err.response.status
+        const responseData = err.response.data
+        
+        if (status === 401 || status === 403) {
+          setError('Niepoprawny email lub hasło')
+        } else if (status === 500) {
+          setError('Błąd serwera. Spróbuj ponownie później.')
+        } else {
+          setError(`Błąd ${status}: ${responseData.message || JSON.stringify(responseData)}`)
+        }
+      } else if (err.request) {
+        // Nie otrzymano odpowiedzi z serwera
+        setError('Brak odpowiedzi z serwera. Sprawdź połączenie internetowe lub upewnij się, że serwer API jest uruchomiony.')
+      } else {
+        // Błąd przy tworzeniu żądania
+        setError(`Błąd: ${err.message}`)
+      }
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const checkApiConnection = async () => {
+    setApiStatus('checking')
+    try {
+      // Próbujemy uzyskać dostęp do zasobu który nie wymaga autoryzacji
+      await apiClient.get('/api/health')
+      setApiStatus('online')
+    } catch (error: any) {
+      // Nawet jeśli endpoint /health nie istnieje, ale otrzymamy odpowiedź od serwera (np. 404),
+      // to oznacza że API jest dostępne
+      if (error.response) {
+        setApiStatus('online')
+      } else {
+        setApiStatus('offline')
+        setError('API jest niedostępne. Upewnij się, że serwer backend jest uruchomiony.')
+      }
+    }
+    
+    // Resetujemy status po 3 sekundach
+    setTimeout(() => {
+      setApiStatus('idle')
+    }, 3000)
   }
 
   return (
@@ -102,6 +156,19 @@ const LoginPage: FC = () => {
             </button>
           </div>
         </form>
+        
+        <div className="pt-4 text-center">
+          <button 
+            onClick={checkApiConnection}
+            disabled={apiStatus === 'checking'}
+            className="text-sm text-gray-500 hover:text-gray-700"
+          >
+            {apiStatus === 'idle' && 'Sprawdź połączenie z API'}
+            {apiStatus === 'checking' && 'Sprawdzanie...'}
+            {apiStatus === 'online' && '✅ API jest dostępne'}
+            {apiStatus === 'offline' && '❌ API jest niedostępne'}
+          </button>
+        </div>
       </div>
     </div>
   )
