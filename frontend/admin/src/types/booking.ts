@@ -6,4 +6,5 @@ export type Booking = {
   serviceId: string
   serviceName: string
   servicePrice: number
+  userName?: string
 }
