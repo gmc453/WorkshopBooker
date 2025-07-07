@@ -83,7 +83,11 @@ public class NotificationService : INotificationService
 
     private async Task ScheduleReminders(string email, string phoneNumber, BookingDto booking)
     {
-        var slotStartUtc = DateTime.SpecifyKind(booking.SlotStartTime, DateTimeKind.Utc);
+        // Ensure the slot start time is treated as UTC. If the value came from
+        // a local DateTime, convert it to UTC to avoid scheduling offsets.
+        var slotStartUtc = booking.SlotStartTime.Kind == DateTimeKind.Utc
+            ? booking.SlotStartTime
+            : booking.SlotStartTime.ToUniversalTime();
 
         var reminder24 = slotStartUtc.AddHours(-24);
         if (reminder24 > DateTime.UtcNow)
