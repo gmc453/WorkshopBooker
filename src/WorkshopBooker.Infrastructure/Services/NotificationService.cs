@@ -2,6 +2,7 @@ using WorkshopBooker.Application.Common.Interfaces;
 using WorkshopBooker.Application.Bookings.Dtos;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace WorkshopBooker.Infrastructure.Services;
 
@@ -83,27 +84,47 @@ public class NotificationService : INotificationService
 
     private async Task ScheduleReminders(string email, string phoneNumber, BookingDto booking)
     {
-        // Ensure the slot start time is treated as UTC. If the value came from
-        // a local DateTime, convert it to UTC to avoid scheduling offsets.
-        var slotStartUtc = booking.SlotStartTime.Kind == DateTimeKind.Utc
-            ? booking.SlotStartTime
-            : booking.SlotStartTime.ToUniversalTime();
+        // Handle timezone conversion properly
+        // If DateTimeKind is Unspecified, we need to determine the intended timezone
+        // For database-stored times, we should treat Unspecified as UTC
+        DateTime slotStartUtc;
+        
+        if (booking.SlotStartTime.Kind == DateTimeKind.Utc)
+        {
+            slotStartUtc = booking.SlotStartTime;
+        }
+        else if (booking.SlotStartTime.Kind == DateTimeKind.Local)
+        {
+            slotStartUtc = booking.SlotStartTime.ToUniversalTime();
+        }
+        else // DateTimeKind.Unspecified
+        {
+            // Assume the time is stored as UTC in the database
+            // If this assumption is wrong, the timezone should be handled at the database/entity level
+            slotStartUtc = DateTime.SpecifyKind(booking.SlotStartTime, DateTimeKind.Utc);
+        }
 
         var reminder24 = slotStartUtc.AddHours(-24);
         if (reminder24 > DateTime.UtcNow)
         {
             await _backgroundJobService.ScheduleAsync(
-                _ => SendBookingReminderAsync(email, phoneNumber, booking, 24),
-                new DateTimeOffset(reminder24));
+                serviceProvider => SendBookingReminderViaServiceProvider(serviceProvider, email, phoneNumber, booking, 24),
+                new DateTimeOffset(reminder24, TimeSpan.Zero));
         }
 
         var reminder2 = slotStartUtc.AddHours(-2);
         if (reminder2 > DateTime.UtcNow)
         {
             await _backgroundJobService.ScheduleAsync(
-                _ => SendBookingReminderAsync(email, phoneNumber, booking, 2),
-                new DateTimeOffset(reminder2));
+                serviceProvider => SendBookingReminderViaServiceProvider(serviceProvider, email, phoneNumber, booking, 2),
+                new DateTimeOffset(reminder2, TimeSpan.Zero));
         }
+    }
+
+    private static async Task SendBookingReminderViaServiceProvider(IServiceProvider serviceProvider, string email, string phoneNumber, BookingDto booking, int hoursBefore)
+    {
+        var notificationService = serviceProvider.GetRequiredService<INotificationService>();
+        await notificationService.SendBookingReminderAsync(email, phoneNumber, booking, hoursBefore);
     }
 
     private string GenerateBookingConfirmationEmail(BookingDto booking) =>
