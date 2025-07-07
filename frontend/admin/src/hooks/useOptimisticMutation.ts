@@ -144,7 +144,7 @@ export function useOptimisticMutation<TData, TVariables>(
         // Max retries exceeded or non-rate-limit error
         let finalError = err;
         
-        if (err.response?.status === 429 && retryCountRef.current > maxRetries) {
+        if (err.response?.status === 429 && retryCountRef.current >= maxRetries) {
           const exhaustedError = new Error(`Maximum retry attempts (${maxRetries}) exceeded for rate-limited request`);
           exhaustedError.name = 'RetryExhaustedError';
           finalError = exhaustedError;

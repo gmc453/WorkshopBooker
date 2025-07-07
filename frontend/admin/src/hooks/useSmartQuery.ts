@@ -158,7 +158,7 @@ export function useSmartQuery<T>(options: UseSmartQueryOptions<T>): UseSmartQuer
         return;
       } else {
         // Max retries exceeded or non-rate-limit error
-        if (err.response?.status === 429 && retryCountRef.current > maxRetries) {
+        if (err.response?.status === 429 && retryCountRef.current >= maxRetries) {
           const exhaustedError = new Error(`Maximum retry attempts (${maxRetries}) exceeded for rate-limited request`);
           exhaustedError.name = 'RetryExhaustedError';
           setError(exhaustedError);
