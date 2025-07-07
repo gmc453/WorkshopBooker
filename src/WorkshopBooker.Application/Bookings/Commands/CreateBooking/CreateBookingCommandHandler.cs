@@ -74,7 +74,19 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
                 return Result<Guid>.Failure("Użytkownik musi być uwierzytelniony");
             }
 
-            var booking = new Booking(Guid.NewGuid(), request.SlotId, request.ServiceId, userId.Value);
+            var booking = new Booking(
+                Guid.NewGuid(), 
+                request.SlotId, 
+                request.ServiceId, 
+                userId.Value,
+                request.CustomerName,
+                request.CustomerEmail,
+                request.CustomerPhone,
+                request.CarBrand,
+                request.CarModel,
+                request.Notes
+            );
+            
             slot.Book();
             _context.Bookings.Add(booking);
             await _context.SaveChangesAsync(cancellationToken);

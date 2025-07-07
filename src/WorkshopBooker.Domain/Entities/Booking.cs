@@ -16,6 +16,14 @@ public class Booking
 
     public BookingStatus Status { get; private set; }
 
+    // --- Dane klienta ---
+    public string? CustomerName { get; private set; }
+    public string? CustomerEmail { get; private set; }
+    public string? CustomerPhone { get; private set; }
+    public string? CarBrand { get; private set; }
+    public string? CarModel { get; private set; }
+    public string? Notes { get; private set; }
+
     // --- Relacje ---
 
     // Na razie zakładamy, że rezerwacja jest na jedną, konkretną usługę
@@ -36,12 +44,18 @@ public class Booking
 
     private Booking() { }
 
-    public Booking(Guid id, Guid slotId, Guid serviceId, Guid userId)
+    public Booking(Guid id, Guid slotId, Guid serviceId, Guid userId, string? customerName = null, string? customerEmail = null, string? customerPhone = null, string? carBrand = null, string? carModel = null, string? notes = null)
     {
         Id = id;
         SlotId = slotId;
         ServiceId = serviceId;
         UserId = userId;
+        CustomerName = customerName;
+        CustomerEmail = customerEmail;
+        CustomerPhone = customerPhone;
+        CarBrand = carBrand;
+        CarModel = carModel;
+        Notes = notes;
         Status = BookingStatus.Requested;
         CreatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
