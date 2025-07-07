@@ -83,13 +83,23 @@ public class NotificationService : INotificationService
 
     private async Task ScheduleReminders(string email, string phoneNumber, BookingDto booking)
     {
-        await _backgroundJobService.ScheduleAsync(
-            _ => SendBookingReminderAsync(email, phoneNumber, booking, 24),
-            booking.SlotStartTime.AddHours(-24));
+        var slotStartUtc = DateTime.SpecifyKind(booking.SlotStartTime, DateTimeKind.Utc);
 
-        await _backgroundJobService.ScheduleAsync(
-            _ => SendBookingReminderAsync(email, phoneNumber, booking, 2),
-            booking.SlotStartTime.AddHours(-2));
+        var reminder24 = slotStartUtc.AddHours(-24);
+        if (reminder24 > DateTime.UtcNow)
+        {
+            await _backgroundJobService.ScheduleAsync(
+                _ => SendBookingReminderAsync(email, phoneNumber, booking, 24),
+                new DateTimeOffset(reminder24));
+        }
+
+        var reminder2 = slotStartUtc.AddHours(-2);
+        if (reminder2 > DateTime.UtcNow)
+        {
+            await _backgroundJobService.ScheduleAsync(
+                _ => SendBookingReminderAsync(email, phoneNumber, booking, 2),
+                new DateTimeOffset(reminder2));
+        }
     }
 
     private string GenerateBookingConfirmationEmail(BookingDto booking) =>
