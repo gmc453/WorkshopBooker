@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { RateLimitHandler } from '../api/rateLimitHandler';
 
 interface UseOptimisticMutationOptions<TData, TVariables> {
@@ -7,6 +7,7 @@ interface UseOptimisticMutationOptions<TData, TVariables> {
   optimisticUpdate?: (oldData: any, newData: TVariables) => any;
   priority?: 'low' | 'normal' | 'high';
   retryOnRateLimit?: boolean;
+  maxRetries?: number;
 }
 
 interface UseOptimisticMutationResult<TData, TVariables> {
@@ -24,7 +25,8 @@ export function useOptimisticMutation<TData, TVariables>(
     mutationFn,
     queryKey,
     optimisticUpdate,
-    retryOnRateLimit = true
+    retryOnRateLimit = true,
+    maxRetries = 3
   } = options;
 
   const [isLoading, setIsLoading] = useState(false);
@@ -33,6 +35,8 @@ export function useOptimisticMutation<TData, TVariables>(
   const [rateLimitInfo, setRateLimitInfo] = useState<any>(null);
 
   const rateLimitHandlerRef = useRef<RateLimitHandler | null>(null);
+  const retryCountRef = useRef<number>(0);
+  const retryTimeoutRef = useRef<number | null>(null);
 
   // Inicjalizacja rate limit handler
   if (!rateLimitHandlerRef.current) {
@@ -62,27 +66,58 @@ export function useOptimisticMutation<TData, TVariables>(
         `${queryKey || 'mutation'}:${JSON.stringify(variables)}`
       )();
 
+      // Reset retry count on success
+      retryCountRef.current = 0;
       return result;
     } catch (err: any) {
-      if (err.response?.status === 429 && retryOnRateLimit) {
+      if (err.response?.status === 429 && retryOnRateLimit && retryCountRef.current < maxRetries) {
         setIsRateLimited(true);
         setRateLimitInfo(err.response.data);
         
-        // Automatyczny retry po czasie
-        setTimeout(() => {
+        // Calculate exponential backoff delay
+        const baseDelay = err.response.data.retryAfterSeconds * 1000;
+        const backoffDelay = Math.min(baseDelay * Math.pow(2, retryCountRef.current), 30000); // Max 30 seconds
+        
+        retryCountRef.current++;
+        
+        // Clear any existing timeout
+        if (retryTimeoutRef.current) {
+          clearTimeout(retryTimeoutRef.current);
+        }
+        
+        // Automatyczny retry po czasie z exponential backoff
+        retryTimeoutRef.current = setTimeout(() => {
           setIsRateLimited(false);
           mutate(variables);
-        }, err.response.data.retryAfterSeconds * 1000);
+        }, backoffDelay);
         
         return null;
       } else {
+        // Reset retry count on non-rate-limit error or max retries exceeded
+        retryCountRef.current = 0;
+        
+        if (err.response?.status === 429 && retryCountRef.current >= maxRetries) {
+          const maxRetriesError = new Error(`Rate limit exceeded. Max retries (${maxRetries}) reached.`);
+          setError(maxRetriesError);
+          throw maxRetriesError;
+        }
+        
         setError(err);
         throw err;
       }
     } finally {
       setIsLoading(false);
     }
-  }, [mutationFn, optimisticUpdate, queryKey, retryOnRateLimit, rateLimitHandlerRef]);
+  }, [mutationFn, optimisticUpdate, queryKey, retryOnRateLimit, maxRetries, rateLimitHandlerRef]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return {
     mutate,

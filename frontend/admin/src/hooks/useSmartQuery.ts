@@ -7,6 +7,7 @@ interface UseSmartQueryOptions<T> {
   debounceMs?: number;
   enabled?: boolean;
   retryOnRateLimit?: boolean;
+  maxRetries?: number;
 }
 
 interface UseSmartQueryResult<T> {
@@ -24,7 +25,8 @@ export function useSmartQuery<T>(options: UseSmartQueryOptions<T>): UseSmartQuer
     deduplication = true,
     debounceMs = 300,
     enabled = true,
-    retryOnRateLimit = true
+    retryOnRateLimit = true,
+    maxRetries = 3
   } = options;
 
   const [data, setData] = useState<T | null>(null);
@@ -37,6 +39,7 @@ export function useSmartQuery<T>(options: UseSmartQueryOptions<T>): UseSmartQuer
   const pendingRequestRef = useRef<Promise<T> | null>(null);
   const rateLimitHandlerRef = useRef<RateLimitHandler | null>(null);
   const timeoutRef = useRef<number | null>(null);
+  const retryCountRef = useRef<number>(0);
 
   // Inicjalizacja rate limit handler
   useEffect(() => {
@@ -84,30 +87,46 @@ export function useSmartQuery<T>(options: UseSmartQueryOptions<T>): UseSmartQuer
       }
 
       setData(result);
+      // Reset retry count on success
+      retryCountRef.current = 0;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         return; // Ignoruj anulowane żądania
       }
 
-      if (err.response?.status === 429 && retryOnRateLimit) {
+      if (err.response?.status === 429 && retryOnRateLimit && retryCountRef.current < maxRetries) {
         setIsRateLimited(true);
         setRateLimitInfo(err.response.data);
         
-        // Automatyczny retry po czasie
+        // Calculate exponential backoff delay
+        const baseDelay = err.response.data.retryAfterSeconds * 1000;
+        const backoffDelay = Math.min(baseDelay * Math.pow(2, retryCountRef.current), 30000); // Max 30 seconds
+        
+        retryCountRef.current++;
+        
+        // Automatyczny retry po czasie z exponential backoff
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current);
         }
         timeoutRef.current = setTimeout(() => {
           setIsRateLimited(false);
           executeQuery();
-        }, err.response.data.retryAfterSeconds * 1000);
+        }, backoffDelay);
       } else {
-        setError(err);
+        // Reset retry count on non-rate-limit error or max retries exceeded
+        retryCountRef.current = 0;
+        
+        if (err.response?.status === 429 && retryCountRef.current >= maxRetries) {
+          const maxRetriesError = new Error(`Rate limit exceeded. Max retries (${maxRetries}) reached.`);
+          setError(maxRetriesError);
+        } else {
+          setError(err);
+        }
       }
     } finally {
       setIsLoading(false);
     }
-  }, [queryFn, enabled, deduplication, retryOnRateLimit]);
+  }, [queryFn, enabled, deduplication, retryOnRateLimit, maxRetries]);
 
   // Debounced query function
   const debouncedQuery = useCallback(() => {
@@ -148,6 +167,7 @@ export function useSmartQuery<T>(options: UseSmartQueryOptions<T>): UseSmartQuer
   const refetch = useCallback(async () => {
     setIsRateLimited(false);
     setRateLimitInfo(null);
+    retryCountRef.current = 0;  // Reset retry count on manual refetch
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
