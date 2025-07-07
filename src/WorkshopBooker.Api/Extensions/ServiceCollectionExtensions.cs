@@ -61,7 +61,8 @@ public static class ServiceCollectionExtensions
         
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserProvider, CurrentUserProvider>();
-        
+        services.AddScoped<BookingValidator>();
+
         return services;
     }
 

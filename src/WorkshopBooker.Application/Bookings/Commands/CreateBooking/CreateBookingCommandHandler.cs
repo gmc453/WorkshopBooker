@@ -7,6 +7,7 @@ using WorkshopBooker.Application.Slots.Dtos;
 using WorkshopBooker.Application.Services.Dtos;
 using WorkshopBooker.Domain.Entities;
 using Microsoft.Extensions.Logging;
+using WorkshopBooker.Application.Bookings.Services;
 
 namespace WorkshopBooker.Application.Bookings.Commands.CreateBooking;
 
@@ -16,68 +17,54 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
     private readonly ICurrentUserProvider _currentUserProvider;
     private readonly ILogger<CreateBookingCommandHandler> _logger;
     private readonly INotificationService _notificationService;
+    private readonly BookingValidator _validator;
 
     public CreateBookingCommandHandler(
         IApplicationDbContext context, 
         ICurrentUserProvider currentUserProvider,
         ILogger<CreateBookingCommandHandler> logger,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        BookingValidator validator)
     {
         _context = context;
         _currentUserProvider = currentUserProvider;
         _logger = logger;
         _notificationService = notificationService;
+        _validator = validator;
     }
 
     public async Task<Result<Guid>> Handle(CreateBookingCommand request, CancellationToken cancellationToken)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
             _logger.LogInformation("Tworzenie rezerwacji dla slotu: {SlotId}", request.SlotId);
 
-            var service = await _context.Services
-                .Include(s => s.Workshop)
-                .FirstOrDefaultAsync(s => s.Id == request.ServiceId, cancellationToken);
-            
-            if (service is null)
+            var validation = await _validator.ValidateAsync(request, cancellationToken);
+            if (!validation.IsValid)
             {
-                _logger.LogWarning("Usługa nie została znaleziona: {ServiceId}", request.ServiceId);
-                return Result<Guid>.Failure("Usługa nie została znaleziona");
-            }
-
-            var slot = await _context.AvailableSlots
-                .FirstOrDefaultAsync(s => s.Id == request.SlotId, cancellationToken);
-            
-            if (slot is null)
-            {
-                _logger.LogWarning("Slot nie został znaleziony: {SlotId}", request.SlotId);
-                return Result<Guid>.Failure("Slot nie został znaleziony");
-            }
-
-            if (slot.Status != SlotStatus.Available)
-            {
-                _logger.LogWarning("Slot nie jest dostępny: {SlotId}, Status: {Status}", request.SlotId, slot.Status);
-                return Result<Guid>.Failure("Slot nie jest dostępny");
-            }
-
-            if (slot.WorkshopId != service.WorkshopId)
-            {
-                _logger.LogWarning("Slot nie należy do warsztatu usługi: SlotWorkshopId: {SlotWorkshopId}, ServiceWorkshopId: {ServiceWorkshopId}", 
-                    slot.WorkshopId, service.WorkshopId);
-                return Result<Guid>.Failure("Slot nie należy do warsztatu usługi");
+                _logger.LogWarning("Walidacja rezerwacji nie powiodła się: {Errors}", string.Join(";", validation.Errors));
+                await transaction.RollbackAsync(cancellationToken);
+                return Result<Guid>.ValidationFailure(validation.Errors);
             }
 
             var userId = _currentUserProvider.UserId;
             if (userId is null)
             {
-                _logger.LogWarning("Użytkownik nie jest uwierzytelniony");
+                await transaction.RollbackAsync(cancellationToken);
                 return Result<Guid>.Failure("Użytkownik musi być uwierzytelniony");
             }
 
+            var slot = await _context.AvailableSlots
+                .Where(s => s.Id == request.SlotId && s.Status == SlotStatus.Available)
+                .FirstAsync(cancellationToken);
+
+            slot.Book();
+
             var booking = new Booking(
-                Guid.NewGuid(), 
-                request.SlotId, 
-                request.ServiceId, 
+                Guid.NewGuid(),
+                request.SlotId,
+                request.ServiceId,
                 userId.Value,
                 request.CustomerName,
                 request.CustomerEmail,
@@ -86,12 +73,11 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
                 request.CarModel,
                 request.Notes
             );
-            
-            slot.Book();
+
             _context.Bookings.Add(booking);
             await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
 
-            // Wysyłanie powiadomienia o potwierdzeniu rezerwacji
             try
             {
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId.Value, cancellationToken);
@@ -102,22 +88,21 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
                         Id = booking.Id,
                         SlotStartTime = slot.StartTime,
                         SlotEndTime = slot.EndTime,
-                        ServiceName = service.Name,
-                        ServicePrice = service.Price,
-                        ServiceId = service.Id,
+                        ServiceName = (await _context.Services.FirstAsync(s => s.Id == request.ServiceId, cancellationToken)).Name,
+                        ServicePrice = (await _context.Services.FirstAsync(s => s.Id == request.ServiceId, cancellationToken)).Price,
+                        ServiceId = request.ServiceId,
                         Status = booking.Status
                     };
 
                     await _notificationService.SendBookingConfirmationAsync(
-                        user.Email, 
-                        user.FirstName, // Tymczasowo używam FirstName zamiast PhoneNumber
+                        user.Email,
+                        user.FirstName,
                         bookingDto);
                 }
             }
             catch (Exception notificationEx)
             {
                 _logger.LogWarning(notificationEx, "Błąd podczas wysyłania powiadomienia o rezerwacji");
-                // Nie przerywamy procesu rezerwacji jeśli powiadomienie się nie udało
             }
 
             _logger.LogInformation("Pomyślnie utworzono rezerwację: {BookingId}", booking.Id);
@@ -125,6 +110,7 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
         }
         catch (Exception ex)
         {
+            await transaction.RollbackAsync(cancellationToken);
             _logger.LogError(ex, "Błąd podczas tworzenia rezerwacji dla slotu: {SlotId}", request.SlotId);
             return Result<Guid>.Failure("Wystąpił błąd podczas tworzenia rezerwacji");
         }
