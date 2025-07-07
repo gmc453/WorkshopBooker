@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { RateLimitHandler } from '../api/rateLimitHandler';
 
 interface UseOptimisticMutationOptions<TData, TVariables> {
@@ -12,7 +12,7 @@ interface UseOptimisticMutationOptions<TData, TVariables> {
 }
 
 interface UseOptimisticMutationResult<TData, TVariables> {
-  mutate: (variables: TVariables) => Promise<TData | null>;
+  mutate: (variables: TVariables) => Promise<TData>;
   isLoading: boolean;
   error: Error | null;
   isRateLimited: boolean;
@@ -39,18 +39,32 @@ export function useOptimisticMutation<TData, TVariables>(
   const rateLimitHandlerRef = useRef<RateLimitHandler | null>(null);
   const retryCountRef = useRef<number>(0);
   const retryTimeoutRef = useRef<number | null>(null);
+  const isMountedRef = useRef<boolean>(true);
+
+  // Cleanup on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   // Inicjalizacja rate limit handler
   if (!rateLimitHandlerRef.current) {
     rateLimitHandlerRef.current = new RateLimitHandler(
       (info) => {
-        setRateLimitInfo(info);
-        setIsRateLimited(true);
+        if (isMountedRef.current) {
+          setRateLimitInfo(info);
+          setIsRateLimited(true);
+        }
       }
     );
   }
 
-  const mutate = useCallback(async (variables: TVariables): Promise<TData | null> => {
+  const mutate = useCallback(async (variables: TVariables): Promise<TData> => {
     // Reset retry count for new mutation attempts
     retryCountRef.current = 0;
     
@@ -63,7 +77,11 @@ export function useOptimisticMutation<TData, TVariables>(
     return await performMutationWithRetry(variables);
   }, [mutationFn, optimisticUpdate, queryKey, retryOnRateLimit, maxRetries, baseRetryDelayMs]);
 
-  const performMutationWithRetry = useCallback(async (variables: TVariables): Promise<TData | null> => {
+  const performMutationWithRetry = useCallback(async (variables: TVariables): Promise<TData> => {
+    if (!isMountedRef.current) {
+      throw new Error('Component unmounted');
+    }
+
     setIsLoading(true);
     setError(null);
     setIsRateLimited(false);
@@ -86,8 +104,10 @@ export function useOptimisticMutation<TData, TVariables>(
       return result;
     } catch (err: any) {
       if (err.response?.status === 429 && retryOnRateLimit && retryCountRef.current < maxRetries) {
-        setIsRateLimited(true);
-        setRateLimitInfo(err.response.data);
+        if (isMountedRef.current) {
+          setIsRateLimited(true);
+          setRateLimitInfo(err.response.data);
+        }
         
         // Increment retry count
         retryCountRef.current += 1;
@@ -103,31 +123,43 @@ export function useOptimisticMutation<TData, TVariables>(
         
         console.log(`Rate limited. Retrying in ${finalDelay}ms (attempt ${retryCountRef.current}/${maxRetries})`);
         
-        // Schedule retry
-        return new Promise((resolve) => {
+        // Schedule retry with proper Promise rejection
+        return new Promise((resolve, reject) => {
           retryTimeoutRef.current = setTimeout(async () => {
-            setIsRateLimited(false);
+            if (!isMountedRef.current) {
+              reject(new Error('Component unmounted during retry'));
+              return;
+            }
+
             try {
+              setIsRateLimited(false);
               const result = await performMutationWithRetry(variables);
               resolve(result);
             } catch (retryErr) {
-              resolve(null);
+              reject(retryErr);
             }
           }, finalDelay);
         });
       } else {
         // Max retries exceeded or non-rate-limit error
+        let finalError = err;
+        
         if (err.response?.status === 429 && retryCountRef.current >= maxRetries) {
           const exhaustedError = new Error(`Maximum retry attempts (${maxRetries}) exceeded for rate-limited request`);
           exhaustedError.name = 'RetryExhaustedError';
-          setError(exhaustedError);
-        } else {
-          setError(err);
+          finalError = exhaustedError;
         }
-        throw err;
+        
+        if (isMountedRef.current) {
+          setError(finalError);
+        }
+        
+        throw finalError;
       }
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [mutationFn, optimisticUpdate, queryKey, retryOnRateLimit, maxRetries, baseRetryDelayMs]);
 
