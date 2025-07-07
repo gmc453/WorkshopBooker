@@ -39,6 +39,12 @@ public class BookingValidator
             return result;
         }
 
+        if (service.WorkshopId != slot.WorkshopId)
+        {
+            result.AddError("Wybrana usługa nie należy do tego samego warsztatu co termin");
+            return result;
+        }
+
         var slotDuration = (slot.EndTime - slot.StartTime).TotalMinutes;
         if (slotDuration < service.DurationInMinutes)
         {
