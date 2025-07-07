@@ -7,6 +7,8 @@ interface UseSmartQueryOptions<T> {
   debounceMs?: number;
   enabled?: boolean;
   retryOnRateLimit?: boolean;
+  maxRetries?: number;
+  initialRetryDelayMs?: number;
 }
 
 interface UseSmartQueryResult<T> {
@@ -24,8 +26,10 @@ export function useSmartQuery<T>(options: UseSmartQueryOptions<T>): UseSmartQuer
     deduplication = true,
     debounceMs = 300,
     enabled = true,
-    retryOnRateLimit = true
-  } = options;
+    retryOnRateLimit = true,
+    maxRetries = 5,
+    initialRetryDelayMs = 1000
+  } = options as UseSmartQueryOptions<T> & { maxRetries?: number; initialRetryDelayMs?: number };
 
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,62 +56,66 @@ export function useSmartQuery<T>(options: UseSmartQueryOptions<T>): UseSmartQuer
 
   // Query function
   const executeQuery = useCallback(async () => {
-    if (!enabled) return;
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-    setIsLoading(true);
-    setError(null);
-    setIsRateLimited(false);
+    const attemptQuery = async (attempt: number): Promise<void> => {
+      if (!enabled) return;
 
-    try {
-      // Anuluj poprzednie żądanie
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      setIsLoading(true);
+      setError(null);
+      setIsRateLimited(false);
 
-      abortControllerRef.current = new AbortController();
-
-      let result: T;
-      
-      if (deduplication && pendingRequestRef.current) {
-        // Użyj istniejącego żądania
-        result = await pendingRequestRef.current;
-      } else {
-        // Utwórz nowe żądanie
-        const promise = queryFn();
-        pendingRequestRef.current = promise;
-        
-        try {
-          result = await promise;
-        } finally {
-          pendingRequestRef.current = null;
+      try {
+        // Anuluj poprzednie żądanie
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
         }
-      }
 
-      setData(result);
-    } catch (err: any) {
-      if (err.name === 'AbortError') {
-        return; // Ignoruj anulowane żądania
-      }
+        abortControllerRef.current = new AbortController();
 
-      if (err.response?.status === 429 && retryOnRateLimit) {
-        setIsRateLimited(true);
-        setRateLimitInfo(err.response.data);
+        let result: T;
         
-        // Automatyczny retry po czasie
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
+        if (deduplication && pendingRequestRef.current) {
+          // Użyj istniejącego żądania
+          result = await pendingRequestRef.current;
+        } else {
+          // Utwórz nowe żądanie
+          const promise = queryFn();
+          pendingRequestRef.current = promise;
+          
+          try {
+            result = await promise;
+          } finally {
+            pendingRequestRef.current = null;
+          }
         }
-        timeoutRef.current = setTimeout(() => {
+
+        setData(result);
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+          return; // Ignoruj anulowane żądania
+        }
+
+        if (err.response?.status === 429 && retryOnRateLimit && attempt <= maxRetries) {
+          setIsRateLimited(true);
+          setRateLimitInfo(err.response.data);
+
+          const serverDelaySec = err.response?.data?.retryAfterSeconds ?? 1;
+          const delayMs = Math.max(initialRetryDelayMs, serverDelaySec * 1000) * Math.pow(2, attempt - 1);
+
+          await sleep(delayMs);
           setIsRateLimited(false);
-          executeQuery();
-        }, err.response.data.retryAfterSeconds * 1000);
-      } else {
-        setError(err);
+          await attemptQuery(attempt + 1);
+        } else {
+          setError(err);
+        }
+      } finally {
+        setIsLoading(false);
       }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [queryFn, enabled, deduplication, retryOnRateLimit]);
+    };
+
+    await attemptQuery(1);
+  }, [queryFn, enabled, deduplication, retryOnRateLimit, maxRetries, initialRetryDelayMs]);
 
   // Debounced query function
   const debouncedQuery = useCallback(() => {
