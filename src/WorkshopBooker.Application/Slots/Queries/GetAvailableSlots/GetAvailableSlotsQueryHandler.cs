@@ -45,7 +45,10 @@ public class GetAvailableSlotsQueryHandler : IRequestHandler<GetAvailableSlotsQu
             Id = s.Id,
             StartTime = s.StartTime,
             EndTime = s.StartTime.AddMinutes(service.DurationInMinutes),
-            Status = s.Status
+            Status = s.Status,
+            WorkshopId = s.WorkshopId,
+            ServiceId = service.Id,
+            IsAvailable = s.Status == Domain.Entities.SlotStatus.Available
         }).ToList();
     }
 }

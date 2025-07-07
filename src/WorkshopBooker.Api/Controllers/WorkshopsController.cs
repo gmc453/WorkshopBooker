@@ -2,6 +2,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using WorkshopBooker.Application.Workshops.Commands.CreateWorkshop;
 using WorkshopBooker.Application.Workshops.Commands.UpdateWorkshop;
 using WorkshopBooker.Application.Workshops.Commands.DeleteWorkshop;
@@ -24,6 +25,7 @@ public class WorkshopsController : ControllerBase
     }
 
     [HttpPost]
+    [EnableRateLimiting("WritePolicy")]
     public async Task<IActionResult> Create(CreateWorkshopCommand command)
     {
         var result = await _sender.Send(command);
@@ -36,12 +38,14 @@ public class WorkshopsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value);
     }
     [HttpGet]
+    [EnableRateLimiting("ReadPolicy")]
     public async Task<IActionResult> GetAll([FromQuery] string? searchTerm)
     {
         var workshops = await _sender.Send(new GetWorkshopsQuery(searchTerm));
         return Ok(workshops);
     }
     [HttpGet("{id}")]
+    [EnableRateLimiting("ReadPolicy")]
     public async Task<IActionResult> GetById(Guid id)
     {
         var query = new GetWorkshopByIdQuery(id);
@@ -54,6 +58,7 @@ public class WorkshopsController : ControllerBase
     
     [HttpGet("my")]
     [Authorize]
+    [EnableRateLimiting("ReadPolicy")]
     public async Task<IActionResult> GetMyWorkshops()
     {
         var workshops = await _sender.Send(new GetMyWorkshopsQuery());
@@ -61,6 +66,7 @@ public class WorkshopsController : ControllerBase
     }
     
     [HttpPut("{id}")]
+    [EnableRateLimiting("WritePolicy")]
     public async Task<IActionResult> Update(Guid id, UpdateWorkshopCommand command)
     {
         // Sprawdzamy, czy ID z URL zgadza się z ID w ciele zapytania
@@ -76,6 +82,7 @@ public class WorkshopsController : ControllerBase
         return NoContent();
     }
     [HttpDelete("{id}")]
+    [EnableRateLimiting("WritePolicy")]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _sender.Send(new DeleteWorkshopCommand(id));

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useWorkshopDetails } from "../../hooks/useWorkshopDetails";
 import { useParams, useRouter } from "next/navigation";
 import { Service } from "../../types/workshop";
-import BookingModal from "../../components/BookingModal";
+import { EnhancedBookingModal } from "../../components/EnhancedBookingModal";
 import { useAuth } from "../../../context/AuthContext";
 import { MapPin, Clock, CreditCard, ArrowLeft, Star, Phone, Mail, Globe, ChevronRight, Briefcase } from "lucide-react";
 import Link from "next/link";
@@ -259,10 +259,13 @@ export default function WorkshopDetailsPage() {
       </div>
 
       {isBookingModalOpen && selectedService && (
-        <BookingModal
-          service={selectedService}
-          workshopId={id}
+        <EnhancedBookingModal
+          isOpen={isBookingModalOpen}
           onClose={() => setIsBookingModalOpen(false)}
+          workshopId={id}
+          serviceId={selectedService.id}
+          serviceName={selectedService.name}
+          onGoHome={() => router.push('/')}
         />
       )}
     </>

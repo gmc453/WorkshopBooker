@@ -15,7 +15,6 @@ namespace WorkshopBooker.Api.Controllers;
 
 [ApiController]
 [Route("api/services/{serviceId}/bookings")]
-[EnableRateLimiting("BookingPolicy")]
 public class BookingsController : ControllerBase
 {
     private readonly ISender _sender;
@@ -29,6 +28,7 @@ public class BookingsController : ControllerBase
 
     [HttpPost]
     [Authorize]
+    [EnableRateLimiting("CriticalPolicy")]
     public async Task<IActionResult> Create(Guid serviceId, CreateBookingCommand command)
     {
         var fullCommand = command with { ServiceId = serviceId };
@@ -43,6 +43,7 @@ public class BookingsController : ControllerBase
     }
 
     [HttpGet("~/api/workshops/{workshopId}/bookings")]
+    [EnableRateLimiting("ReadPolicy")]
     public async Task<IActionResult> GetForWorkshop(Guid workshopId)
     {
         var bookings = await _sender.Send(new GetBookingsForWorkshopQuery(workshopId));
@@ -51,6 +52,7 @@ public class BookingsController : ControllerBase
 
     [HttpGet("~/api/bookings/my")]
     [Authorize]
+    [EnableRateLimiting("ReadPolicy")]
     public async Task<IActionResult> GetMyBookings()
     {
         var bookings = await _sender.Send(new GetMyBookingsQuery());
@@ -59,6 +61,7 @@ public class BookingsController : ControllerBase
 
     [HttpPost("~/api/workshops/{workshopId}/bookings/{bookingId}/confirm")]
     [Authorize]
+    [EnableRateLimiting("WritePolicy")]
     public async Task<IActionResult> ConfirmBooking(Guid workshopId, Guid bookingId)
     {
         var command = new ConfirmBookingCommand(bookingId);
@@ -68,6 +71,7 @@ public class BookingsController : ControllerBase
 
     [HttpPost("~/api/workshops/{workshopId}/bookings/{bookingId}/cancel")]
     [Authorize]
+    [EnableRateLimiting("WritePolicy")]
     public async Task<IActionResult> CancelBooking(Guid workshopId, Guid bookingId)
     {
         var command = new CancelBookingCommand(bookingId);
@@ -77,6 +81,7 @@ public class BookingsController : ControllerBase
 
     [HttpGet("~/api/workshops/{workshopId}/alternatives")]
     [AllowAnonymous]
+    [EnableRateLimiting("ReadPolicy")]
     public async Task<IActionResult> GetAlternativeSlots(
         Guid workshopId, 
         [FromQuery] DateTime requestedTime, 
@@ -88,6 +93,7 @@ public class BookingsController : ControllerBase
 
     [HttpGet("~/api/workshops/{workshopId}/available-slots")]
     [AllowAnonymous]
+    [EnableRateLimiting("ReadPolicy")]
     public async Task<IActionResult> GetAvailableSlots(
         Guid workshopId,
         [FromQuery] DateTime startDate,

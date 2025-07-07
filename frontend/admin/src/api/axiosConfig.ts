@@ -1,4 +1,11 @@
 import axios from 'axios'
+import { RateLimitHandler } from './rateLimitHandler'
+
+// Funkcja do wyświetlania powiadomień o rate limit
+const showRateLimitNotification = (info: any) => {
+  console.warn(`Rate Limit: ${info.remaining}/${info.limit} (${info.policy})`);
+  // Tutaj możesz dodać toast notification
+};
 
 // Ustawiam prawidłowy adres API - port 5197 jest poprawny zgodnie z konfiguracją backendu
 const apiClient = axios.create({
@@ -7,6 +14,8 @@ const apiClient = axios.create({
     'Content-Type': 'application/json'
   }
 })
+
+const rateLimitHandler = new RateLimitHandler(showRateLimitNotification, apiClient);
 
 // Dodajemy interceptor, który będzie automatycznie dodawał token do nagłówków
 apiClient.interceptors.request.use(
@@ -37,13 +46,19 @@ apiClient.interceptors.request.use(
   }
 )
 
-// Dodajemy interceptor dla odpowiedzi
+// Dodajemy interceptor dla odpowiedzi z obsługą rate limiting
 apiClient.interceptors.response.use(
   (response) => {
     console.log(`Otrzymałem odpowiedź z: ${response.config.url}`, response)
+    // Tymczasowo wyłączamy handleSuccess aby sprawdzić czy to nie powoduje problemów
+    // return rateLimitHandler.handleSuccess(response)
     return response
   },
-  (error) => {
+  async (error) => {
+    if (error.response?.status === 429) {
+      return await rateLimitHandler.handleRateLimit(error, error.config)
+    }
+    
     if (error.response) {
       // Serwer zwrócił odpowiedź ze statusem błędu
       console.error('Błąd odpowiedzi:', {
