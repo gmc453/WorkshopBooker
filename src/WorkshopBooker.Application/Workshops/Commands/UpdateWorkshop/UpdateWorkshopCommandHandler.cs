@@ -2,6 +2,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WorkshopBooker.Application.Common.Interfaces;
+using WorkshopBooker.Application.Common.Exceptions;
 
 namespace WorkshopBooker.Application.Workshops.Commands.UpdateWorkshop;
 
@@ -23,8 +24,7 @@ public class UpdateWorkshopCommandHandler : IRequestHandler<UpdateWorkshopComman
         // 2. Jeśli nie istnieje, rzuć wyjątek (kontroler zamieni go na 404)
         if (workshop is null)
         {
-            // W przyszłości można stworzyć własne, bardziej szczegółowe wyjątki
-            throw new Exception("Workshop not found");
+            throw new WorkshopNotFoundException();
         }
 
         // 3. Wywołaj metodę na encji, aby zaktualizować jej stan

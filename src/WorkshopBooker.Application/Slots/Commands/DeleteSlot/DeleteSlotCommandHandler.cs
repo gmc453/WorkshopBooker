@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WorkshopBooker.Application.Common.Interfaces;
+using WorkshopBooker.Application.Common.Exceptions;
 
 namespace WorkshopBooker.Application.Slots.Commands.DeleteSlot;
 
@@ -22,12 +23,12 @@ public class DeleteSlotCommandHandler : IRequestHandler<DeleteSlotCommand>
             .FirstOrDefaultAsync(s => s.Id == request.SlotId, cancellationToken);
         if (slot is null)
         {
-            throw new Exception("Slot not found");
+            throw new SlotNotFoundException();
         }
 
         if (slot.Status == Domain.Entities.SlotStatus.Booked)
         {
-            throw new Exception("Cannot delete booked slot");
+            throw new InvalidOperationException("Nie można usunąć zarezerwowanego terminu");
         }
 
         var currentUser = _currentUserProvider.UserId;

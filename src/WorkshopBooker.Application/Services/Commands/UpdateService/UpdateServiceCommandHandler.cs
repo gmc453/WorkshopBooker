@@ -2,6 +2,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WorkshopBooker.Application.Common.Interfaces;
+using WorkshopBooker.Application.Common.Exceptions;
 using WorkshopBooker.Domain.Entities;
 
 namespace WorkshopBooker.Application.Services.Commands.UpdateService;
@@ -22,7 +23,7 @@ public class UpdateServiceCommandHandler : IRequestHandler<UpdateServiceCommand>
 
         if (service is null)
         {
-            throw new Exception("Service not found");
+            throw new ServiceNotFoundException();
         }
 
         service.Update(request.Name, request.Description, request.Price, request.DurationInMinutes, ServiceCategory.Other);
