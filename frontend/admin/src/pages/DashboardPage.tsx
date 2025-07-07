@@ -4,7 +4,7 @@ import Header from '../components/Header'
 import '../App.css'
 import type { FC } from 'react'
 import { useMyWorkshops } from '../hooks/useMyWorkshops'
-import { Loader2, Building, Calendar, Filter, Clock, CheckCircle, AlertCircle, XCircle, Search } from 'lucide-react'
+import { Loader2, Building, Calendar, Filter, Clock, CheckCircle, AlertCircle, XCircle, Search, TrendingUp } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 // Statusy rezerwacji
@@ -62,6 +62,17 @@ const DashboardPage: FC = () => {
               <p className="text-sm text-gray-500">Zarządzaj slotami czasowymi</p>
             </div>
           </Link>
+          {workshops && workshops.length > 0 && (
+            <Link to={`/analytics/${workshops[0].id}`} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all flex items-center">
+              <div className="bg-purple-100 rounded-full p-3 mr-4 text-purple-600">
+                <TrendingUp className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="font-medium">Analityka</h3>
+                <p className="text-sm text-gray-500">Przeglądaj statystyki</p>
+              </div>
+            </Link>
+          )}
         </div>
 
         {/* Filtrowanie i wyszukiwanie rezerwacji */}

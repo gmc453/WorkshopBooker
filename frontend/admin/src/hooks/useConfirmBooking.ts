@@ -6,7 +6,7 @@ export const useConfirmBooking = (workshopId: string) => {
 
   return useMutation({
     mutationFn: async (bookingId: string) => {
-      const response = await apiClient.post(`/api/bookings/${bookingId}/confirm`)
+      const response = await apiClient.post(`/api/workshops/${workshopId}/bookings/${bookingId}/confirm`)
       return response.data
     },
     onSuccess: (_data, variables) => {

@@ -9,6 +9,7 @@ import './index.css'
 import DashboardPage from './pages/DashboardPage'
 import LoginPage from './pages/LoginPage'
 import SlotsPage from './pages/SlotsPage/index'
+import AnalyticsPage from './pages/AnalyticsPage'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -29,6 +30,14 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <SlotsPage />
+      </ProtectedRoute>
+    )
+  },
+  {
+    path: '/analytics/:workshopId',
+    element: (
+      <ProtectedRoute>
+        <AnalyticsPage />
       </ProtectedRoute>
     )
   },

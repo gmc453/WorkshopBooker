@@ -11,29 +11,31 @@ public class NotificationService : INotificationService
     private readonly ILogger<NotificationService> _logger;
     private readonly IConfiguration _configuration;
     private readonly IBackgroundJobService _backgroundJobService;
+    private readonly IEmailService _emailService;
+    private readonly ISmsService _smsService;
 
     public NotificationService(
         ILogger<NotificationService> logger,
         IConfiguration configuration,
-        IBackgroundJobService backgroundJobService)
+        IBackgroundJobService backgroundJobService,
+        IEmailService emailService,
+        ISmsService smsService)
     {
         _logger = logger;
         _configuration = configuration;
         _backgroundJobService = backgroundJobService;
+        _emailService = emailService;
+        _smsService = smsService;
     }
 
     public async Task SendEmailAsync(string to, string subject, string body)
     {
-        // TODO: Implement actual email service (SendGrid, MailKit, etc.)
-        _logger.LogInformation("Sending email to {Email}: {Subject}", to, subject);
-        await Task.Delay(100);
+        await _emailService.SendEmailAsync(to, subject, body);
     }
 
     public async Task SendSmsAsync(string phoneNumber, string message)
     {
-        // TODO: Implement actual SMS service (Twilio, etc.)
-        _logger.LogInformation("Sending SMS to {Phone}: {Message}", phoneNumber, message);
-        await Task.Delay(100);
+        await _smsService.SendSmsAsync(phoneNumber, message);
     }
 
     public async Task SendBookingConfirmationAsync(string email, string phoneNumber, BookingDto booking)

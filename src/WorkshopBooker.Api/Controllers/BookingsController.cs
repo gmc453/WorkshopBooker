@@ -9,6 +9,7 @@ using WorkshopBooker.Application.Bookings.Queries.GetMyBookings;
 using System.Security.Claims;
 using WorkshopBooker.Application.Bookings.Commands.ConfirmBooking;
 using WorkshopBooker.Application.Bookings.Commands.CancelBooking;
+using WorkshopBooker.Application.Common.Interfaces;
 
 namespace WorkshopBooker.Api.Controllers;
 
@@ -18,10 +19,12 @@ namespace WorkshopBooker.Api.Controllers;
 public class BookingsController : ControllerBase
 {
     private readonly ISender _sender;
+    private readonly IConflictResolutionService _conflictResolutionService;
 
-    public BookingsController(ISender sender)
+    public BookingsController(ISender sender, IConflictResolutionService conflictResolutionService)
     {
         _sender = sender;
+        _conflictResolutionService = conflictResolutionService;
     }
 
     [HttpPost]
@@ -54,19 +57,43 @@ public class BookingsController : ControllerBase
         return Ok(bookings);
     }
 
-    [HttpPost("~/api/bookings/{id}/confirm")]
+    [HttpPost("~/api/workshops/{workshopId}/bookings/{bookingId}/confirm")]
     [Authorize]
-    public async Task<IActionResult> ConfirmBooking(Guid id)
+    public async Task<IActionResult> ConfirmBooking(Guid workshopId, Guid bookingId)
     {
-        await _sender.Send(new ConfirmBookingCommand(id));
+        var command = new ConfirmBookingCommand(bookingId);
+        await _sender.Send(command);
         return NoContent();
     }
 
-    [HttpPost("~/api/bookings/{id}/cancel")]
+    [HttpPost("~/api/workshops/{workshopId}/bookings/{bookingId}/cancel")]
     [Authorize]
-    public async Task<IActionResult> CancelBooking(Guid id)
+    public async Task<IActionResult> CancelBooking(Guid workshopId, Guid bookingId)
     {
-        await _sender.Send(new CancelBookingCommand(id));
+        var command = new CancelBookingCommand(bookingId);
+        await _sender.Send(command);
         return NoContent();
+    }
+
+    [HttpGet("~/api/workshops/{workshopId}/alternatives")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetAlternativeSlots(
+        Guid workshopId, 
+        [FromQuery] DateTime requestedTime, 
+        [FromQuery] int durationMinutes = 60)
+    {
+        var alternatives = await _conflictResolutionService.SuggestAlternatives(workshopId, requestedTime, durationMinutes);
+        return Ok(alternatives);
+    }
+
+    [HttpGet("~/api/workshops/{workshopId}/available-slots")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetAvailableSlots(
+        Guid workshopId,
+        [FromQuery] DateTime startDate,
+        [FromQuery] DateTime endDate)
+    {
+        var slots = await _conflictResolutionService.FindAvailableSlots(workshopId, startDate, endDate);
+        return Ok(slots);
     }
 }

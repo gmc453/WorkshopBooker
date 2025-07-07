@@ -11,8 +11,17 @@ public static class DependencyInjection
     {
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
+        
+        // Notification services
+        services.AddScoped<IEmailService, SendGridEmailService>();
+        services.AddScoped<ISmsService, TwilioSmsService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddSingleton<IBackgroundJobService, BackgroundJobService>();
+        
+        // Business logic services
+        services.AddScoped<IConflictResolutionService, ConflictResolutionService>();
+        services.AddScoped<IWorkingHoursValidator, WorkingHoursValidator>();
+        
         return services;
     }
 }

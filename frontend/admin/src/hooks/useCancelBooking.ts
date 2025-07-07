@@ -6,7 +6,7 @@ export const useCancelBooking = (workshopId: string) => {
 
   return useMutation({
     mutationFn: async (bookingId: string) => {
-      const response = await apiClient.post(`/api/bookings/${bookingId}/cancel`)
+      const response = await apiClient.post(`/api/workshops/${workshopId}/bookings/${bookingId}/cancel`)
       return response.data
     },
     onSuccess: (_data, variables) => {
