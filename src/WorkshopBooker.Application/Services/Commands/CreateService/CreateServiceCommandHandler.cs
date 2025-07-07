@@ -16,8 +16,7 @@ public class CreateServiceCommandHandler : IRequestHandler<CreateServiceCommand,
 
     public async Task<Guid> Handle(CreateServiceCommand request, CancellationToken cancellationToken)
     {
-        var service = new Service(Guid.NewGuid(), request.Name, request.Price, request.DurationInMinutes, request.WorkshopId);
-        service.Update(request.Name, request.Description, request.Price, request.DurationInMinutes);
+        var service = new Service(Guid.NewGuid(), request.Name, request.Price, request.DurationInMinutes, request.WorkshopId, ServiceCategory.Other, request.Description);
 
         _context.Services.Add(service);
         await _context.SaveChangesAsync(cancellationToken);

@@ -1,46 +1,83 @@
 ﻿// src/WorkshopBooker.Domain/Entities/Service.cs
 namespace WorkshopBooker.Domain.Entities;
 
+public enum ServiceCategory
+{
+    Maintenance,     // Konserwacja
+    Repair,          // Naprawa
+    Diagnostic,      // Diagnostyka
+    TireService,     // Usługi opon
+    Electrical,      // Elektryka
+    Bodywork,        // Blacharka
+    Other            // Inne
+}
+
 public class Service
 {
     public Guid Id { get; private set; }
     public string Name { get; private set; }
     public string? Description { get; private set; }
-
-    // W przyszłości można to rozbudować o bardziej złożony model ceny
     public decimal Price { get; private set; }
-
-    // Czas trwania usługi w minutach
     public int DurationInMinutes { get; private set; }
-
-    // --- Kluczowa część: Relacja do Warsztatu ---
-
-    // To jest klucz obcy (foreign key), który będzie w bazie danych.
     public Guid WorkshopId { get; private set; }
+    
+    // Nowe pola
+    public string? ImageUrl { get; private set; }
+    public List<string> RequiredEquipment { get; private set; } = new();
+    public ServiceCategory Category { get; private set; }
+    public bool IsPopular { get; private set; }
+    public string? PreparationInstructions { get; private set; }
+    public double AverageRating { get; private set; }
+    public int ReviewCount { get; private set; }
 
-    // To jest właściwość nawigacyjna, która pozwala EF Core "załadować"
-    // cały obiekt warsztatu, do którego należy ta usługa.
+    // Navigation properties
     public Workshop Workshop { get; private set; } = null!;
 
-    // Prywatny konstruktor dla EF Core
     private Service() { }
 
-    // Publiczny konstruktor do tworzenia nowej usługi
-    public Service(Guid id, string name, decimal price, int durationInMinutes, Guid workshopId)
+    public Service(Guid id, string name, decimal price, int durationInMinutes, Guid workshopId, 
+                   ServiceCategory category = ServiceCategory.Other, string? description = null)
     {
         Id = id;
         Name = name;
         Price = price;
         DurationInMinutes = durationInMinutes;
         WorkshopId = workshopId;
+        Category = category;
+        Description = description;
     }
 
-    // Metoda do aktualizacji
-    public void Update(string name, string? description, decimal price, int durationInMinutes)
+    public void Update(string name, string? description, decimal price, int durationInMinutes, 
+                      ServiceCategory category, string? imageUrl = null, string? preparationInstructions = null)
     {
         Name = name;
         Description = description;
         Price = price;
         DurationInMinutes = durationInMinutes;
+        Category = category;
+        ImageUrl = imageUrl;
+        PreparationInstructions = preparationInstructions;
+    }
+
+    public void SetPopular(bool isPopular)
+    {
+        IsPopular = isPopular;
+    }
+
+    public void AddRequiredEquipment(string equipment)
+    {
+        if (!RequiredEquipment.Contains(equipment))
+            RequiredEquipment.Add(equipment);
+    }
+
+    public void RemoveRequiredEquipment(string equipment)
+    {
+        RequiredEquipment.Remove(equipment);
+    }
+
+    public void UpdateRating(double averageRating, int reviewCount)
+    {
+        AverageRating = averageRating;
+        ReviewCount = reviewCount;
     }
 }

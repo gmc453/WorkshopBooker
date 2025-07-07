@@ -1,8 +1,10 @@
 ﻿// src/WorkshopBooker.Infrastructure/Persistence/ApplicationDbContext.cs
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WorkshopBooker.Application.Common.Interfaces;
 using WorkshopBooker.Domain.Entities;
+using System.Text.Json;
 
 namespace WorkshopBooker.Infrastructure.Persistence;
 
@@ -13,6 +15,8 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<Booking> Bookings { get; set; }
     public DbSet<AvailableSlot> AvailableSlots { get; set; }
     public DbSet<User> Users { get; set; }
+    public DbSet<Review> Reviews { get; set; }
+    
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
@@ -21,6 +25,11 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        
+        // ValueConverter dla List<string>
+        var listConverter = new ValueConverter<List<string>, string>(
+            v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+            v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new List<string>());
         
         // Konfiguracja User
         modelBuilder.Entity<User>(entity =>
@@ -51,6 +60,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Description).IsRequired().HasMaxLength(500);
             entity.Property(e => e.Price).IsRequired().HasColumnType("decimal(18,2)");
+            entity.Property(e => e.RequiredEquipment).HasConversion(listConverter);
         });
 
         // Konfiguracja AvailableSlot
@@ -69,6 +79,31 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.CreatedAt).IsRequired();
         });
 
+        // Konfiguracja Review
+        modelBuilder.Entity<Review>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Rating).IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.IsVerified).IsRequired();
+            
+            // Relacje
+            entity.HasOne(e => e.Booking)
+                .WithMany()
+                .HasForeignKey(e => e.BookingId)
+                .OnDelete(DeleteBehavior.Restrict);
+                
+            entity.HasOne(e => e.Workshop)
+                .WithMany()
+                .HasForeignKey(e => e.WorkshopId)
+                .OnDelete(DeleteBehavior.Restrict);
+                
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         // Indeksy dla lepszej wydajności
         modelBuilder.Entity<Workshop>()
             .HasIndex(e => e.Name);
@@ -81,5 +116,12 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
         
         modelBuilder.Entity<Booking>()
             .HasIndex(e => new { e.UserId, e.Status });
+            
+        modelBuilder.Entity<Review>()
+            .HasIndex(e => new { e.WorkshopId, e.CreatedAt });
+            
+        modelBuilder.Entity<Review>()
+            .HasIndex(e => e.BookingId)
+            .IsUnique();
     }
 }

@@ -82,11 +82,59 @@ namespace WorkshopBooker.Infrastructure.Migrations
                     b.ToTable("Bookings");
                 });
 
+            modelBuilder.Entity("WorkshopBooker.Domain.Entities.Review", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Comment")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsVerified")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("WorkshopId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("WorkshopId", "CreatedAt");
+
+                    b.ToTable("Reviews");
+                });
+
             modelBuilder.Entity("WorkshopBooker.Domain.Entities.Service", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<double>("AverageRating")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -96,13 +144,29 @@ namespace WorkshopBooker.Infrastructure.Migrations
                     b.Property<int>("DurationInMinutes")
                         .HasColumnType("integer");
 
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsPopular")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("PreparationInstructions")
+                        .HasColumnType("text");
+
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("RequiredEquipment")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("ReviewCount")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("WorkshopId")
                         .HasColumnType("uuid");
@@ -234,6 +298,33 @@ namespace WorkshopBooker.Infrastructure.Migrations
                     b.Navigation("Slot");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("WorkshopBooker.Domain.Entities.Review", b =>
+                {
+                    b.HasOne("WorkshopBooker.Domain.Entities.Booking", "Booking")
+                        .WithMany()
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("WorkshopBooker.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("WorkshopBooker.Domain.Entities.Workshop", "Workshop")
+                        .WithMany()
+                        .HasForeignKey("WorkshopId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+
+                    b.Navigation("User");
+
+                    b.Navigation("Workshop");
                 });
 
             modelBuilder.Entity("WorkshopBooker.Domain.Entities.Service", b =>

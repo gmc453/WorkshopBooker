@@ -9,6 +9,8 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -29,6 +31,8 @@ export default function RegisterPage() {
       const response = await apiClient.post("/api/auth/register", {
         email,
         password,
+        firstName,
+        lastName,
       });
 
       // Po udanej rejestracji przekieruj na stronę logowania
@@ -59,6 +63,38 @@ export default function RegisterPage() {
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4 rounded-md shadow-sm">
+            <div>
+              <label htmlFor="firstName" className="sr-only">
+                Imię
+              </label>
+              <input
+                id="firstName"
+                name="firstName"
+                type="text"
+                autoComplete="given-name"
+                required
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                placeholder="Imię"
+              />
+            </div>
+            <div>
+              <label htmlFor="lastName" className="sr-only">
+                Nazwisko
+              </label>
+              <input
+                id="lastName"
+                name="lastName"
+                type="text"
+                autoComplete="family-name"
+                required
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                placeholder="Nazwisko"
+              />
+            </div>
             <div>
               <label htmlFor="email" className="sr-only">
                 Adres email
