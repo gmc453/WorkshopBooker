@@ -59,7 +59,7 @@ public class SlotsController : ControllerBase
     public async Task<IActionResult> GetNextAvailable(Guid workshopId, Guid serviceId)
     {
         var slots = await _sender.Send(new GetAvailableSlotsQuery(workshopId, serviceId, null, null));
-        var nextSlot = slots.Where(s => s.Status == 0) // Available status
+        var nextSlot = slots.Where(s => s.IsAvailable)
                            .OrderBy(s => s.StartTime)
                            .FirstOrDefault();
         return Ok(nextSlot);
@@ -79,7 +79,7 @@ public class SlotsController : ControllerBase
     public async Task<IActionResult> GetQuickSlots(Guid workshopId, Guid serviceId, [FromQuery] int count = 5)
     {
         var slots = await _sender.Send(new GetAvailableSlotsQuery(workshopId, serviceId, null, null));
-        var quickSlots = slots.Where(s => s.Status == 0) // Available status
+        var quickSlots = slots.Where(s => s.IsAvailable)
                              .OrderBy(s => s.StartTime)
                              .Take(count)
                              .ToList();

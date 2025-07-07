@@ -7,8 +7,6 @@ const showRateLimitNotification = (info: any) => {
   // Tutaj możesz dodać toast notification
 };
 
-const rateLimitHandler = new RateLimitHandler(showRateLimitNotification);
-
 // Ustawiam prawidłowy adres API - port 5197 jest poprawny zgodnie z konfiguracją backendu
 const apiClient = axios.create({
   baseURL: 'http://localhost:5197',
@@ -16,6 +14,8 @@ const apiClient = axios.create({
     'Content-Type': 'application/json'
   }
 })
+
+const rateLimitHandler = new RateLimitHandler(showRateLimitNotification, apiClient);
 
 // Dodajemy interceptor, który będzie automatycznie dodawał token do nagłówków
 apiClient.interceptors.request.use(

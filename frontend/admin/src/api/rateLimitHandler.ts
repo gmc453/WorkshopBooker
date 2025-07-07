@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 export interface RateLimitInfo {
   limit: number;
   remaining: number;
@@ -19,9 +21,11 @@ export class RateLimitHandler {
   private retryQueue: Map<string, Array<() => Promise<any>>> = new Map();
   private isProcessingQueue = false;
   private showNotification: (info: RateLimitInfo) => void;
+  private axiosInstance: any;
 
-  constructor(showNotification: (info: RateLimitInfo) => void) {
+  constructor(showNotification: (info: RateLimitInfo) => void, axiosInstance?: any) {
     this.showNotification = showNotification;
+    this.axiosInstance = axiosInstance || axios;
   }
 
   handleSuccess(response: any): any {
@@ -45,9 +49,6 @@ export class RateLimitHandler {
       this.retryQueue.set(retryKey, []);
     }
     
-    const retryFunction = () => this.retryRequest(config, rateLimitError);
-    this.retryQueue.get(retryKey)!.push(retryFunction);
-    
     const rateLimitInfo: RateLimitInfo = {
       limit: 0,
       remaining: 0,
@@ -59,11 +60,22 @@ export class RateLimitHandler {
     
     this.showNotification(rateLimitInfo);
     
-    if (!this.isProcessingQueue) {
-      await this.processRetryQueue(retryKey);
-    }
-    
-    return Promise.reject(error);
+    return new Promise((resolve, reject) => {
+      const retryFunction = async () => {
+        try {
+          const result = await this.retryRequest(config, rateLimitError);
+          resolve(result);
+        } catch (retryError) {
+          reject(retryError);
+        }
+      };
+      
+      this.retryQueue.get(retryKey)!.push(retryFunction);
+      
+      if (!this.isProcessingQueue) {
+        this.processRetryQueue(retryKey).catch(reject);
+      }
+    });
   }
 
   private async retryRequest(config: any, rateLimitError: RateLimitError): Promise<any> {
@@ -71,11 +83,7 @@ export class RateLimitHandler {
     
     await new Promise(resolve => setTimeout(resolve, delay));
     
-    return fetch(config.url, {
-      method: config.method,
-      headers: config.headers,
-      body: config.data
-    });
+    return this.axiosInstance.request(config);
   }
 
   private async processRetryQueue(retryKey: string): Promise<void> {
