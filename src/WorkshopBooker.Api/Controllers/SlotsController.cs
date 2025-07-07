@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using WorkshopBooker.Application.Slots.Commands.CreateSlot;
 using WorkshopBooker.Application.Slots.Commands.DeleteSlot;
 using WorkshopBooker.Application.Slots.Queries.GetSlots;
+using WorkshopBooker.Application.Slots.Queries.GetAvailableSlots;
 
 namespace WorkshopBooker.Api.Controllers;
 
@@ -30,6 +31,13 @@ public class SlotsController : ControllerBase
     public async Task<IActionResult> GetForWorkshop(Guid workshopId, [FromQuery] DateTime? dateFrom, [FromQuery] DateTime? dateTo)
     {
         var slots = await _sender.Send(new GetSlotsQuery(workshopId, dateFrom, dateTo));
+        return Ok(slots);
+    }
+
+    [HttpGet("workshops/{workshopId}/services/{serviceId}/slots")]
+    public async Task<IActionResult> GetAvailableForService(Guid workshopId, Guid serviceId, [FromQuery] DateTime? dateFrom, [FromQuery] DateTime? dateTo)
+    {
+        var slots = await _sender.Send(new GetAvailableSlotsQuery(workshopId, serviceId, dateFrom, dateTo));
         return Ok(slots);
     }
 

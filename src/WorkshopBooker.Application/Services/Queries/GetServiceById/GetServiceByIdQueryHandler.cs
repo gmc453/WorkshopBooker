@@ -18,14 +18,19 @@ public class GetServiceByIdQueryHandler : IRequestHandler<GetServiceByIdQuery, S
     public async Task<ServiceDto?> Handle(GetServiceByIdQuery request, CancellationToken cancellationToken)
     {
         var service = await _context.Services
-            .Where(s => s.Id == request.Id && s.WorkshopId == request.WorkshopId)
+            .Where(s => s.Id == request.Id && s.WorkshopId == request.WorkshopId && s.IsActive)
             .Select(s => new ServiceDto
             {
                 Id = s.Id,
                 Name = s.Name,
                 Description = s.Description,
                 Price = s.Price,
-                DurationInMinutes = s.DurationInMinutes
+                DurationInMinutes = s.DurationInMinutes,
+                Category = s.Category,
+                IsPopular = s.IsPopular,
+                IsActive = s.IsActive,
+                RequiredEquipment = s.RequiredEquipment,
+                PreparationInstructions = s.PreparationInstructions
             })
             .FirstOrDefaultAsync(cancellationToken);
 

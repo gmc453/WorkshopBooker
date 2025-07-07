@@ -27,13 +27,18 @@ public class GetWorkshopByIdQueryHandler : IRequestHandler<GetWorkshopByIdQuery,
                 Name = w.Name,
                 Description = w.Description,
                 Address = w.Address,
-                Services = w.Services.Select(s => new ServiceDto
+                Services = w.Services.Where(s => s.IsActive).Select(s => new ServiceDto
                 {
                     Id = s.Id,
                     Name = s.Name,
                     Description = s.Description,
                     Price = s.Price,
-                    DurationInMinutes = s.DurationInMinutes
+                    DurationInMinutes = s.DurationInMinutes,
+                    Category = s.Category,
+                    IsPopular = s.IsPopular,
+                    IsActive = s.IsActive,
+                    RequiredEquipment = s.RequiredEquipment,
+                    PreparationInstructions = s.PreparationInstructions
                 }).ToList()
             })
             .FirstOrDefaultAsync(cancellationToken); // Pobieramy pierwszy pasujący element lub null
