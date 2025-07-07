@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using WorkshopBooker.Application.Bookings.Commands.CreateBooking;
 using WorkshopBooker.Application.Bookings.Dtos;
 using WorkshopBooker.Application.Bookings.Queries.GetBookingsForWorkshop;
@@ -13,6 +14,7 @@ namespace WorkshopBooker.Api.Controllers;
 
 [ApiController]
 [Route("api/services/{serviceId}/bookings")]
+[EnableRateLimiting("BookingPolicy")]
 public class BookingsController : ControllerBase
 {
     private readonly ISender _sender;
