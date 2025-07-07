@@ -10,6 +10,7 @@ using FluentValidation;
 using WorkshopBooker.Application.Common;
 using WorkshopBooker.Application.Common.Interfaces;
 using WorkshopBooker.Api.Services;
+using WorkshopBooker.Application.Bookings.Services;
 
 namespace WorkshopBooker.Api.Extensions;
 

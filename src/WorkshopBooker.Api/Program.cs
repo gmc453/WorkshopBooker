@@ -15,11 +15,10 @@ builder.Services.AddInfrastructure();
 builder.Services.AddRateLimiter(options =>
 {
     options.AddPolicy("BookingPolicy", context =>
-        RateLimitPartition.GetIpLimiter(context.Connection.RemoteIpAddress?.ToString() ?? "unknown", key => new TokenBucketRateLimiterOptions
+        RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString() ?? "unknown", key => new FixedWindowRateLimiterOptions
         {
-            TokenLimit = 5,
-            TokensPerPeriod = 5,
-            ReplenishmentPeriod = TimeSpan.FromMinutes(1),
+            PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(1),
             AutoReplenishment = true
         }));
 });

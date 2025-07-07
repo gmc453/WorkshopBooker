@@ -1,5 +1,6 @@
 ﻿// src/WorkshopBooker.Application/Common/Interfaces/IApplicationDbContext.cs
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using System.Collections.Generic;
 using WorkshopBooker.Domain.Entities;
 
@@ -13,5 +14,6 @@ public interface IApplicationDbContext
     DbSet<AvailableSlot> AvailableSlots { get; }
     DbSet<User> Users { get; }
     DbSet<Review> Reviews { get; }
+    DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
