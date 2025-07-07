@@ -6,6 +6,7 @@ using WorkshopBooker.Application.Services.Commands.UpdateService;
 using WorkshopBooker.Application.Services.Commands.DeleteService;
 using WorkshopBooker.Application.Services.Queries.GetServices;
 using WorkshopBooker.Application.Services.Queries.GetServiceById;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace WorkshopBooker.Api.Controllers;
 
@@ -21,6 +22,7 @@ public class ServicesController : ControllerBase
     }
 
     [HttpPost]
+    [EnableRateLimiting("WritePolicy")]
     public async Task<IActionResult> Create(Guid workshopId, CreateServiceCommand command)
     {
         var fullCommand = command with { WorkshopId = workshopId };
@@ -29,6 +31,7 @@ public class ServicesController : ControllerBase
     }
 
     [HttpGet]
+    [EnableRateLimiting("ReadPolicy")]
     public async Task<IActionResult> GetAll(Guid workshopId)
     {
         var services = await _sender.Send(new GetServicesQuery(workshopId));
@@ -36,6 +39,7 @@ public class ServicesController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [EnableRateLimiting("ReadPolicy")]
     public async Task<IActionResult> GetById(Guid workshopId, Guid id)
     {
         var service = await _sender.Send(new GetServiceByIdQuery(workshopId, id));
@@ -43,6 +47,7 @@ public class ServicesController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [EnableRateLimiting("WritePolicy")]
     public async Task<IActionResult> Update(Guid workshopId, Guid id, UpdateServiceCommand command)
     {
         if (id != command.Id)
@@ -56,6 +61,7 @@ public class ServicesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [EnableRateLimiting("WritePolicy")]
     public async Task<IActionResult> Delete(Guid workshopId, Guid id)
     {
         await _sender.Send(new DeleteServiceCommand(workshopId, id));

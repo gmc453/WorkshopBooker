@@ -1,11 +1,13 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import BookingList from '../components/BookingList'
 import Header from '../components/Header'
 import '../App.css'
 import type { FC } from 'react'
-import { useMyWorkshops } from '../hooks/useMyWorkshops'
-import { Loader2, Building, Calendar, Filter, Clock, CheckCircle, AlertCircle, XCircle, Search, TrendingUp } from 'lucide-react'
+import { useSmartQuery } from '../hooks/useSmartQuery'
+import { SmartLoadingState, RateLimitStatus } from '../components/SmartLoadingState'
+import { Building, Calendar, Filter, Clock, CheckCircle, AlertCircle, XCircle, Search, TrendingUp } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import apiClient from '../api/axiosConfig'
 
 // Statusy rezerwacji
 const BOOKING_STATUSES = [
@@ -21,7 +23,24 @@ const DashboardPage: FC = () => {
   const [selectedWorkshopId, setSelectedWorkshopId] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
-  const { data: workshops, isLoading: isLoadingWorkshops } = useMyWorkshops()
+  
+  // Memoizowana funkcja zapytania
+  const fetchWorkshops = useCallback(() => {
+    return apiClient.get('/api/workshops/my').then(res => res.data)
+  }, [])
+  
+  // Smart query dla warsztatów z obsługą rate limiting
+  const { 
+    data: workshops, 
+    isLoading: isLoadingWorkshops,
+    isRateLimited: isWorkshopsRateLimited,
+    rateLimitInfo: workshopsRateLimitInfo,
+    error: workshopsError
+  } = useSmartQuery({
+    queryFn: fetchWorkshops,
+    deduplication: true,
+    debounceMs: 300
+  })
   
   // Memoizacja dostępnych warsztatów ze wszystkimi opcjami
   const workshopOptions = useMemo(() => {
@@ -38,8 +57,16 @@ const DashboardPage: FC = () => {
       
       <main className="p-6 max-w-6xl mx-auto">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Zarządzanie rezerwacjami</h2>
-          <p className="text-gray-600">Przeglądaj i zarządzaj rezerwacjami w systemie</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">Zarządzanie rezerwacjami</h2>
+              <p className="text-gray-600">Przeglądaj i zarządzaj rezerwacjami w systemie</p>
+            </div>
+            <div className="flex space-x-2">
+              <RateLimitStatus endpoint="/api/workshops/my" method="GET" />
+              <RateLimitStatus endpoint="/api/workshops/{id}/bookings" method="GET" />
+            </div>
+          </div>
         </div>
 
         {/* Skróty do najważniejszych funkcji */}
@@ -89,12 +116,14 @@ const DashboardPage: FC = () => {
             {/* Wybór warsztatu */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Warsztat</label>
-              {isLoadingWorkshops ? (
-                <div className="flex items-center space-x-2 p-2 border border-gray-300 rounded-md bg-gray-50">
-                  <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
-                  <span className="text-gray-500">Ładowanie...</span>
-                </div>
-              ) : (
+              <SmartLoadingState
+                isLoading={isLoadingWorkshops}
+                isRateLimited={isWorkshopsRateLimited}
+                rateLimitInfo={workshopsRateLimitInfo}
+                error={workshopsError}
+                loadingText="Ładowanie warsztatów..."
+                errorText="Błąd ładowania warsztatów"
+              >
                 <select 
                   value={selectedWorkshopId} 
                   onChange={(e) => setSelectedWorkshopId(e.target.value)}
@@ -106,7 +135,7 @@ const DashboardPage: FC = () => {
                     </option>
                   ))}
                 </select>
-              )}
+              </SmartLoadingState>
             </div>
             
             {/* Filtr statusu */}

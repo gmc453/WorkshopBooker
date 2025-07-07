@@ -3,12 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using WorkshopBooker.Application.Analytics.Queries.GetWorkshopAnalytics;
 using WorkshopBooker.Application.Analytics.Dtos;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace WorkshopBooker.Api.Controllers;
 
 [ApiController]
 [Route("api/workshops/{workshopId}/analytics")]
 [Authorize]
+[EnableRateLimiting("AnalyticsPolicy")]
 public class AnalyticsController : ControllerBase
 {
     private readonly ISender _sender;
