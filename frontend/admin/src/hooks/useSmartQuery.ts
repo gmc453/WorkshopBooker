@@ -118,7 +118,7 @@ export function useSmartQuery<T>(options: UseSmartQueryOptions<T>): UseSmartQuer
         return; // Ignoruj anulowane żądania
       }
 
-      if (err.response?.status === 429 && retryOnRateLimit && retryCountRef.current <= maxRetries) {
+      if (err.response?.status === 429 && retryOnRateLimit && retryCountRef.current < maxRetries) {
         setIsRateLimited(true);
         setRateLimitInfo(err.response.data);
         

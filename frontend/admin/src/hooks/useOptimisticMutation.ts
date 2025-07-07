@@ -103,7 +103,7 @@ export function useOptimisticMutation<TData, TVariables>(
       retryCountRef.current = 0;
       return result;
     } catch (err: any) {
-      if (err.response?.status === 429 && retryOnRateLimit && retryCountRef.current <= maxRetries) {
+      if (err.response?.status === 429 && retryOnRateLimit && retryCountRef.current < maxRetries) {
         if (isMountedRef.current) {
           setIsRateLimited(true);
           setRateLimitInfo(err.response.data);
