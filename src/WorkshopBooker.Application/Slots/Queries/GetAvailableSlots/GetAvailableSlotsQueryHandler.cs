@@ -16,7 +16,8 @@ public class GetAvailableSlotsQueryHandler : IRequestHandler<GetAvailableSlotsQu
 
     public async Task<List<AvailableSlotDto>> Handle(GetAvailableSlotsQuery request, CancellationToken cancellationToken)
     {
-        var service = await _context.Services.FirstOrDefaultAsync(s => s.Id == request.ServiceId, cancellationToken);
+        var service = await _context.Services
+            .FirstOrDefaultAsync(s => s.Id == request.ServiceId && s.WorkshopId == request.WorkshopId, cancellationToken);
         if (service == null)
         {
             return new List<AvailableSlotDto>();
