@@ -19,6 +19,7 @@ public class Workshop
     public string? PhoneNumber { get; private set; }
     public string? Email { get; private set; }
     public string? Address { get; private set; }
+    public bool IsActive { get; private set; } = true;
 
     // Daty audytowe - dobra praktyka, by wiedzieć kiedy rekord powstał i był modyfikowany.
     public DateTime CreatedAt { get; private set; }
@@ -61,5 +62,15 @@ public class Workshop
     {
         UserId = userId;
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Activate()
+    {
+        IsActive = true;
+    }
+
+    public void Deactivate()
+    {
+        IsActive = false;
     }
 }

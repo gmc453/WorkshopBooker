@@ -12,6 +12,7 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddSingleton<IBackgroundJobService, BackgroundJobService>();
         return services;
     }
 }

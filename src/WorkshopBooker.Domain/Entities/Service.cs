@@ -20,6 +20,7 @@ public class Service
     public decimal Price { get; private set; }
     public int DurationInMinutes { get; private set; }
     public Guid WorkshopId { get; private set; }
+    public bool IsActive { get; private set; } = true;
     
     // Nowe pola
     public string? ImageUrl { get; private set; }
@@ -79,5 +80,15 @@ public class Service
     {
         AverageRating = averageRating;
         ReviewCount = reviewCount;
+    }
+
+    public void Activate()
+    {
+        IsActive = true;
+    }
+
+    public void Deactivate()
+    {
+        IsActive = false;
     }
 }

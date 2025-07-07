@@ -51,6 +51,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Description).IsRequired().HasMaxLength(500);
             entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.IsActive).IsRequired();
         });
 
         // Konfiguracja Service
@@ -61,6 +62,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.Description).IsRequired().HasMaxLength(500);
             entity.Property(e => e.Price).IsRequired().HasColumnType("decimal(18,2)");
             entity.Property(e => e.RequiredEquipment).HasConversion(listConverter);
+            entity.Property(e => e.IsActive).IsRequired();
         });
 
         // Konfiguracja AvailableSlot

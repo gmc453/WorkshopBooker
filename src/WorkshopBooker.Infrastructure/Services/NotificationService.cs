@@ -2,6 +2,7 @@ using WorkshopBooker.Application.Common.Interfaces;
 using WorkshopBooker.Application.Bookings.Dtos;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace WorkshopBooker.Infrastructure.Services;
 
@@ -9,25 +10,30 @@ public class NotificationService : INotificationService
 {
     private readonly ILogger<NotificationService> _logger;
     private readonly IConfiguration _configuration;
+    private readonly IBackgroundJobService _backgroundJobService;
 
-    public NotificationService(ILogger<NotificationService> logger, IConfiguration configuration)
+    public NotificationService(
+        ILogger<NotificationService> logger,
+        IConfiguration configuration,
+        IBackgroundJobService backgroundJobService)
     {
         _logger = logger;
         _configuration = configuration;
+        _backgroundJobService = backgroundJobService;
     }
 
     public async Task SendEmailAsync(string to, string subject, string body)
     {
         // TODO: Implement actual email service (SendGrid, MailKit, etc.)
         _logger.LogInformation("Sending email to {Email}: {Subject}", to, subject);
-        await Task.Delay(100); // Simulate email sending
+        await Task.Delay(100);
     }
 
     public async Task SendSmsAsync(string phoneNumber, string message)
     {
         // TODO: Implement actual SMS service (Twilio, etc.)
         _logger.LogInformation("Sending SMS to {Phone}: {Message}", phoneNumber, message);
-        await Task.Delay(100); // Simulate SMS sending
+        await Task.Delay(100);
     }
 
     public async Task SendBookingConfirmationAsync(string email, string phoneNumber, BookingDto booking)
@@ -37,18 +43,13 @@ public class NotificationService : INotificationService
         var smsMessage = GenerateBookingConfirmationSms(booking);
 
         var tasks = new List<Task>();
-
         if (!string.IsNullOrEmpty(email))
-        {
             tasks.Add(SendEmailAsync(email, subject, emailBody));
-        }
-
         if (!string.IsNullOrEmpty(phoneNumber))
-        {
             tasks.Add(SendSmsAsync(phoneNumber, smsMessage));
-        }
 
         await Task.WhenAll(tasks);
+        await ScheduleReminders(email, phoneNumber, booking);
     }
 
     public async Task SendBookingReminderAsync(string email, string phoneNumber, BookingDto booking, int hoursBefore)
@@ -58,16 +59,10 @@ public class NotificationService : INotificationService
         var smsMessage = GenerateBookingReminderSms(booking, hoursBefore);
 
         var tasks = new List<Task>();
-
         if (!string.IsNullOrEmpty(email))
-        {
             tasks.Add(SendEmailAsync(email, subject, emailBody));
-        }
-
         if (!string.IsNullOrEmpty(phoneNumber))
-        {
             tasks.Add(SendSmsAsync(phoneNumber, smsMessage));
-        }
 
         await Task.WhenAll(tasks);
     }
@@ -79,66 +74,90 @@ public class NotificationService : INotificationService
         var smsMessage = GenerateBookingCancellationSms(booking);
 
         var tasks = new List<Task>();
-
         if (!string.IsNullOrEmpty(email))
-        {
             tasks.Add(SendEmailAsync(email, subject, emailBody));
-        }
-
         if (!string.IsNullOrEmpty(phoneNumber))
-        {
             tasks.Add(SendSmsAsync(phoneNumber, smsMessage));
-        }
 
         await Task.WhenAll(tasks);
     }
 
-    private string GenerateBookingConfirmationEmail(BookingDto booking)
+    private async Task ScheduleReminders(string email, string phoneNumber, BookingDto booking)
     {
-        return $@"
-            <h2>Potwierdzenie rezerwacji</h2>
+        // Handle timezone conversion properly
+        // If DateTimeKind is Unspecified, we need to determine the intended timezone
+        // For database-stored times, we should treat Unspecified as UTC
+        DateTime slotStartUtc;
+        
+        if (booking.SlotStartTime.Kind == DateTimeKind.Utc)
+        {
+            slotStartUtc = booking.SlotStartTime;
+        }
+        else if (booking.SlotStartTime.Kind == DateTimeKind.Local)
+        {
+            slotStartUtc = booking.SlotStartTime.ToUniversalTime();
+        }
+        else // DateTimeKind.Unspecified
+        {
+            // Assume the time is stored as UTC in the database
+            // If this assumption is wrong, the timezone should be handled at the database/entity level
+            slotStartUtc = DateTime.SpecifyKind(booking.SlotStartTime, DateTimeKind.Utc);
+        }
+
+        var reminder24 = slotStartUtc.AddHours(-24);
+        if (reminder24 > DateTime.UtcNow)
+        {
+            await _backgroundJobService.ScheduleAsync(
+                serviceProvider => SendBookingReminderViaServiceProvider(serviceProvider, email, phoneNumber, booking, 24),
+                new DateTimeOffset(reminder24, TimeSpan.Zero));
+        }
+
+        var reminder2 = slotStartUtc.AddHours(-2);
+        if (reminder2 > DateTime.UtcNow)
+        {
+            await _backgroundJobService.ScheduleAsync(
+                serviceProvider => SendBookingReminderViaServiceProvider(serviceProvider, email, phoneNumber, booking, 2),
+                new DateTimeOffset(reminder2, TimeSpan.Zero));
+        }
+    }
+
+    private static async Task SendBookingReminderViaServiceProvider(IServiceProvider serviceProvider, string email, string phoneNumber, BookingDto booking, int hoursBefore)
+    {
+        var notificationService = serviceProvider.GetRequiredService<INotificationService>();
+        await notificationService.SendBookingReminderAsync(email, phoneNumber, booking, hoursBefore);
+    }
+
+    private string GenerateBookingConfirmationEmail(BookingDto booking) =>
+        $@"<h2>Potwierdzenie rezerwacji</h2>
             <p>Dziękujemy za rezerwację w naszym warsztacie!</p>
             <p><strong>Data:</strong> {booking.SlotStartTime:dd.MM.yyyy}</p>
             <p><strong>Godzina:</strong> {booking.SlotStartTime:HH:mm}</p>
             <p><strong>Usługa:</strong> {booking.ServiceName}</p>
             <p><strong>Cena:</strong> {booking.ServicePrice} zł</p>
             <p>Prosimy o punktualne przybycie. W razie pytań prosimy o kontakt.</p>";
-    }
 
-    private string GenerateBookingConfirmationSms(BookingDto booking)
-    {
-        return $"Potwierdzenie rezerwacji: {booking.SlotStartTime:dd.MM.yyyy HH:mm}, {booking.ServiceName}, {booking.ServicePrice} zł. Dziękujemy!";
-    }
+    private string GenerateBookingConfirmationSms(BookingDto booking) =>
+        $"Potwierdzenie rezerwacji: {booking.SlotStartTime:dd.MM.yyyy HH:mm}, {booking.ServiceName}, {booking.ServicePrice} zł. Dziękujemy!";
 
-    private string GenerateBookingReminderEmail(BookingDto booking, int hoursBefore)
-    {
-        return $@"
-            <h2>Przypomnienie o wizycie</h2>
+    private string GenerateBookingReminderEmail(BookingDto booking, int hoursBefore) =>
+        $@"<h2>Przypomnienie o wizycie</h2>
             <p>Przypominamy o wizycie za {hoursBefore} godzin!</p>
             <p><strong>Data:</strong> {booking.SlotStartTime:dd.MM.yyyy}</p>
             <p><strong>Godzina:</strong> {booking.SlotStartTime:HH:mm}</p>
             <p><strong>Usługa:</strong> {booking.ServiceName}</p>
             <p>Prosimy o punktualne przybycie.</p>";
-    }
 
-    private string GenerateBookingReminderSms(BookingDto booking, int hoursBefore)
-    {
-        return $"Przypomnienie: wizyta za {hoursBefore}h - {booking.SlotStartTime:dd.MM.yyyy HH:mm}, {booking.ServiceName}";
-    }
+    private string GenerateBookingReminderSms(BookingDto booking, int hoursBefore) =>
+        $"Przypomnienie: wizyta za {hoursBefore}h - {booking.SlotStartTime:dd.MM.yyyy HH:mm}, {booking.ServiceName}";
 
-    private string GenerateBookingCancellationEmail(BookingDto booking)
-    {
-        return $@"
-            <h2>Anulowanie rezerwacji</h2>
+    private string GenerateBookingCancellationEmail(BookingDto booking) =>
+        $@"<h2>Anulowanie rezerwacji</h2>
             <p>Twoja rezerwacja została anulowana.</p>
             <p><strong>Data:</strong> {booking.SlotStartTime:dd.MM.yyyy}</p>
             <p><strong>Godzina:</strong> {booking.SlotStartTime:HH:mm}</p>
             <p><strong>Usługa:</strong> {booking.ServiceName}</p>
             <p>Dziękujemy za zrozumienie.</p>";
-    }
 
-    private string GenerateBookingCancellationSms(BookingDto booking)
-    {
-        return $"Rezerwacja anulowana: {booking.SlotStartTime:dd.MM.yyyy HH:mm}, {booking.ServiceName}";
-    }
-} 
+    private string GenerateBookingCancellationSms(BookingDto booking) =>
+        $"Rezerwacja anulowana: {booking.SlotStartTime:dd.MM.yyyy HH:mm}, {booking.ServiceName}";
+}

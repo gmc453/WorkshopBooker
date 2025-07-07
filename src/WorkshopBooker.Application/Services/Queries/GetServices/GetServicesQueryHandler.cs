@@ -18,14 +18,21 @@ public class GetServicesQueryHandler : IRequestHandler<GetServicesQuery, List<Se
     public async Task<List<ServiceDto>> Handle(GetServicesQuery request, CancellationToken cancellationToken)
     {
         var services = await _context.Services
-            .Where(s => s.WorkshopId == request.WorkshopId)
+            .Where(s => s.WorkshopId == request.WorkshopId && s.IsActive)
+            .OrderByDescending(s => s.IsPopular)
+            .ThenBy(s => s.Name)
             .Select(s => new ServiceDto
             {
                 Id = s.Id,
                 Name = s.Name,
                 Description = s.Description,
                 Price = s.Price,
-                DurationInMinutes = s.DurationInMinutes
+                DurationInMinutes = s.DurationInMinutes,
+                Category = s.Category,
+                IsPopular = s.IsPopular,
+                IsActive = s.IsActive,
+                RequiredEquipment = s.RequiredEquipment,
+                PreparationInstructions = s.PreparationInstructions
             })
             .ToListAsync(cancellationToken);
 

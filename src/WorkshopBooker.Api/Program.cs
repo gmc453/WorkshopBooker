@@ -1,6 +1,7 @@
 using WorkshopBooker.Api.Extensions;
 using WorkshopBooker.Api.Middleware;
 using WorkshopBooker.Infrastructure;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,16 @@ builder.Services.AddApplicationServices();
 builder.Services.AddCorsPolicy();
 builder.Services.AddSwaggerWithJwt();
 builder.Services.AddInfrastructure();
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("BookingPolicy", context =>
+        RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString() ?? "unknown", key => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(1),
+            AutoReplenishment = true
+        }));
+});
 builder.Services.AddControllers();
 
 var app = builder.Build();
@@ -25,6 +36,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("AllowDevelopmentClients");
 app.UseRouting();
+app.UseRateLimiter();
 
 // Dodaj global exception handler
 app.UseMiddleware<GlobalExceptionHandler>();
