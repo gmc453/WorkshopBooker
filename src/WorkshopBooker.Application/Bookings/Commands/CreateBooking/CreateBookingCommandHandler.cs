@@ -4,7 +4,6 @@ using WorkshopBooker.Application.Common.Interfaces;
 using WorkshopBooker.Application.Common;
 using WorkshopBooker.Application.Bookings.Dtos;
 using WorkshopBooker.Application.Slots.Dtos;
-using WorkshopBooker.Application.Services.Dtos;
 using WorkshopBooker.Domain.Entities;
 using Microsoft.Extensions.Logging;
 using WorkshopBooker.Application.Bookings.Services;
@@ -57,7 +56,13 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
 
             var slot = await _context.AvailableSlots
                 .Where(s => s.Id == request.SlotId && s.Status == SlotStatus.Available)
-                .FirstAsync(cancellationToken);
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (slot == null)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return Result<Guid>.Failure("Wybrany termin jest już niedostępny");
+            }
 
             slot.Book();
 
@@ -83,21 +88,28 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId.Value, cancellationToken);
                 if (user != null)
                 {
-                    var bookingDto = new BookingDto
-                    {
-                        Id = booking.Id,
-                        SlotStartTime = slot.StartTime,
-                        SlotEndTime = slot.EndTime,
-                        ServiceName = (await _context.Services.FirstAsync(s => s.Id == request.ServiceId, cancellationToken)).Name,
-                        ServicePrice = (await _context.Services.FirstAsync(s => s.Id == request.ServiceId, cancellationToken)).Price,
-                        ServiceId = request.ServiceId,
-                        Status = booking.Status
-                    };
+                    var service = await _context.Services
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(s => s.Id == request.ServiceId, cancellationToken);
 
-                    await _notificationService.SendBookingConfirmationAsync(
-                        user.Email,
-                        user.FirstName,
-                        bookingDto);
+                    if (service != null)
+                    {
+                        var bookingDto = new BookingDto
+                        {
+                            Id = booking.Id,
+                            SlotStartTime = slot.StartTime,
+                            SlotEndTime = slot.EndTime,
+                            ServiceName = service.Name,
+                            ServicePrice = service.Price,
+                            ServiceId = request.ServiceId,
+                            Status = booking.Status
+                        };
+
+                        await _notificationService.SendBookingConfirmationAsync(
+                            user.Email,
+                            user.FirstName,
+                            bookingDto);
+                    }
                 }
             }
             catch (Exception notificationEx)
