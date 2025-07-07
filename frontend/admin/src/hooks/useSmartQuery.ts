@@ -7,6 +7,8 @@ interface UseSmartQueryOptions<T> {
   debounceMs?: number;
   enabled?: boolean;
   retryOnRateLimit?: boolean;
+  maxRetries?: number;
+  baseRetryDelayMs?: number;
 }
 
 interface UseSmartQueryResult<T> {
@@ -24,7 +26,9 @@ export function useSmartQuery<T>(options: UseSmartQueryOptions<T>): UseSmartQuer
     deduplication = true,
     debounceMs = 300,
     enabled = true,
-    retryOnRateLimit = true
+    retryOnRateLimit = true,
+    maxRetries = 3,
+    baseRetryDelayMs = 1000
   } = options;
 
   const [data, setData] = useState<T | null>(null);
@@ -37,6 +41,9 @@ export function useSmartQuery<T>(options: UseSmartQueryOptions<T>): UseSmartQuer
   const pendingRequestRef = useRef<Promise<T> | null>(null);
   const rateLimitHandlerRef = useRef<RateLimitHandler | null>(null);
   const timeoutRef = useRef<number | null>(null);
+  const retryCountRef = useRef<number>(0);
+  const retryTimeoutRef = useRef<number | null>(null);
+  const isRetryingRef = useRef<boolean>(false);
 
   // Inicjalizacja rate limit handler
   useEffect(() => {
@@ -54,7 +61,26 @@ export function useSmartQuery<T>(options: UseSmartQueryOptions<T>): UseSmartQuer
   const executeQuery = useCallback(async () => {
     if (!enabled) return;
 
-    setIsLoading(true);
+    // Reset retry count for new query attempts
+    retryCountRef.current = 0;
+    isRetryingRef.current = false;
+    
+    // Clear any existing retry timeout
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
+
+    return await performQueryWithRetry();
+  }, [queryFn, enabled, deduplication, retryOnRateLimit, maxRetries, baseRetryDelayMs]);
+
+  const performQueryWithRetry = useCallback(async (): Promise<void> => {
+    if (!enabled) return;
+
+    // Only set loading to true if we're not already in a retry cycle
+    if (!isRetryingRef.current) {
+      setIsLoading(true);
+    }
     setError(null);
     setIsRateLimited(false);
 
@@ -83,31 +109,71 @@ export function useSmartQuery<T>(options: UseSmartQueryOptions<T>): UseSmartQuer
         }
       }
 
+      // Reset retry count on success
+      retryCountRef.current = 0;
+      isRetryingRef.current = false;
       setData(result);
     } catch (err: any) {
       if (err.name === 'AbortError') {
         return; // Ignoruj anulowane żądania
       }
 
-      if (err.response?.status === 429 && retryOnRateLimit) {
+      if (err.response?.status === 429 && retryOnRateLimit && retryCountRef.current < maxRetries) {
         setIsRateLimited(true);
         setRateLimitInfo(err.response.data);
         
-        // Automatyczny retry po czasie
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
+        // Increment retry count
+        retryCountRef.current += 1;
+        
+        // Calculate delay with exponential backoff and jitter
+        const retryAfterMs = err.response.data?.retryAfterSeconds 
+          ? err.response.data.retryAfterSeconds * 1000 
+          : baseRetryDelayMs * Math.pow(2, retryCountRef.current - 1);
+        
+        // Add jitter (±25% of delay) - corrected calculation
+        const jitter = retryAfterMs * 0.5 * (Math.random() - 0.5);
+        const finalDelay = Math.max(1000, retryAfterMs + jitter); // Minimum 1s delay
+        
+        console.log(`Rate limited. Retrying in ${finalDelay}ms (attempt ${retryCountRef.current}/${maxRetries})`);
+        
+        // Clear existing retry timeout (not debounce timeout)
+        if (retryTimeoutRef.current) {
+          clearTimeout(retryTimeoutRef.current);
         }
-        timeoutRef.current = setTimeout(() => {
+        
+        // Mark as retrying to maintain loading state
+        isRetryingRef.current = true;
+        
+        // Schedule retry
+        retryTimeoutRef.current = setTimeout(async () => {
           setIsRateLimited(false);
-          executeQuery();
-        }, err.response.data.retryAfterSeconds * 1000);
+          try {
+            await performQueryWithRetry();
+          } catch (retryErr) {
+            // Error already handled in performQueryWithRetry
+          }
+        }, finalDelay);
+        
+        // Don't set isLoading to false here - keep it true during retry delay
+        return;
       } else {
-        setError(err);
+        // Max retries exceeded or non-rate-limit error
+        if (err.response?.status === 429 && retryCountRef.current >= maxRetries) {
+          const exhaustedError = new Error(`Maximum retry attempts (${maxRetries}) exceeded for rate-limited request`);
+          exhaustedError.name = 'RetryExhaustedError';
+          setError(exhaustedError);
+        } else {
+          setError(err);
+        }
+        isRetryingRef.current = false;
       }
     } finally {
-      setIsLoading(false);
+      // Only set loading to false if we're not in a retry cycle
+      if (!isRetryingRef.current) {
+        setIsLoading(false);
+      }
     }
-  }, [queryFn, enabled, deduplication, retryOnRateLimit]);
+  }, [queryFn, enabled, deduplication, retryOnRateLimit, maxRetries, baseRetryDelayMs]);
 
   // Debounced query function
   const debouncedQuery = useCallback(() => {
@@ -142,14 +208,22 @@ export function useSmartQuery<T>(options: UseSmartQueryOptions<T>): UseSmartQuer
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
     };
   }, []);
 
   const refetch = useCallback(async () => {
     setIsRateLimited(false);
     setRateLimitInfo(null);
+    retryCountRef.current = 0;
+    isRetryingRef.current = false;
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
+    }
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
     }
     await executeQuery();
   }, [executeQuery]);
