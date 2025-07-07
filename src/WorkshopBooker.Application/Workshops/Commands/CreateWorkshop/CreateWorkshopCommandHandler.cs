@@ -1,38 +1,57 @@
 ﻿// src/WorkshopBooker.Application/Workshops/Commands/CreateWorkshop/CreateWorkshopCommandHandler.cs
 using MediatR;
 using WorkshopBooker.Application.Common.Interfaces;
+using WorkshopBooker.Application.Common;
 using WorkshopBooker.Domain.Entities;
+using Microsoft.Extensions.Logging;
 
 namespace WorkshopBooker.Application.Workshops.Commands.CreateWorkshop;
 
-public class CreateWorkshopCommandHandler : IRequestHandler<CreateWorkshopCommand, Guid>
+public class CreateWorkshopCommandHandler : IRequestHandler<CreateWorkshopCommand, Result<Guid>>
 {
     private readonly IApplicationDbContext _context;
+    private readonly ILogger<CreateWorkshopCommandHandler> _logger;
 
-    // Wstrzykujemy interfejs, a nie konkretną implementację. Czysta Architektura w praktyce!
-    public CreateWorkshopCommandHandler(IApplicationDbContext context)
+    public CreateWorkshopCommandHandler(IApplicationDbContext context, ILogger<CreateWorkshopCommandHandler> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
-    public async Task<Guid> Handle(CreateWorkshopCommand request, CancellationToken cancellationToken)
+    public async Task<Result<Guid>> Handle(CreateWorkshopCommand request, CancellationToken cancellationToken)
     {
-        // 1. Stwórz nową encję na podstawie danych z komendy
-        var workshop = new Workshop(
-            Guid.NewGuid(), // Generujemy nowe ID
-            request.Name,
-            request.Description);
+        try
+        {
+            _logger.LogInformation("Tworzenie nowego warsztatu: {WorkshopName}", request.Name);
 
-        // Możemy tu dodać logikę aktualizacji opcjonalnych pól, np. przez osobną metodę
-        // workshop.UpdateDetails(request.PhoneNumber, ...);
+            // Sprawdź czy warsztat o takiej nazwie już istnieje
+            var existingWorkshop = _context.Workshops.FirstOrDefault(w => w.Name == request.Name);
+            if (existingWorkshop != null)
+            {
+                _logger.LogWarning("Próba utworzenia warsztatu o nazwie, która już istnieje: {WorkshopName}", request.Name);
+                return Result<Guid>.Failure("Warsztat o takiej nazwie już istnieje");
+            }
 
-        // 2. Dodaj encję do kontekstu bazy danych
-        _context.Workshops.Add(workshop);
+            // Stwórz nową encję na podstawie danych z komendy
+            var workshop = new Workshop(
+                Guid.NewGuid(),
+                request.Name,
+                request.Description);
 
-        // 3. Zapisz zmiany w bazie danych
-        await _context.SaveChangesAsync(cancellationToken);
+            // Dodaj encję do kontekstu bazy danych
+            _context.Workshops.Add(workshop);
 
-        // 4. Zwróć ID nowo utworzonego warsztatu
-        return workshop.Id;
+            // Zapisz zmiany w bazie danych
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Pomyślnie utworzono warsztat z ID: {WorkshopId}", workshop.Id);
+
+            return Result<Guid>.Success(workshop.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Błąd podczas tworzenia warsztatu: {WorkshopName}", request.Name);
+            return Result<Guid>.Failure("Wystąpił błąd podczas tworzenia warsztatu");
+        }
     }
 }

@@ -8,7 +8,7 @@ import './index.css'
 // Importujemy strony
 import DashboardPage from './pages/DashboardPage'
 import LoginPage from './pages/LoginPage'
-import SlotsPage from './pages/SlotsPage'
+import SlotsPage from './pages/SlotsPage/index'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 

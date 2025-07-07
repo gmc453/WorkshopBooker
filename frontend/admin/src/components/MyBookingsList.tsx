@@ -123,7 +123,7 @@ const MyBookingsList: FC = () => {
       
       <div className="grid gap-4">
         {data.map((booking: Booking) => {
-          const { date, time } = formatDateTime(booking.bookingDateTime)
+          const { date, time } = formatDateTime(booking.slotStartTime)
           
           return (
             <div

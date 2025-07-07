@@ -26,11 +26,14 @@ public class WorkshopsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(CreateWorkshopCommand command)
     {
-        // Cała logika kontrolera to wysłanie komendy i zwrócenie wyniku. Proste i czyste!
-        var workshopId = await _sender.Send(command);
+        var result = await _sender.Send(command);
 
-        // Zwracamy kod 201 Created wraz z ID nowego zasobu
-        return CreatedAtAction(nameof(Create), new { id = workshopId }, workshopId);
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { error = result.Error, validationErrors = result.ValidationErrors });
+        }
+
+        return CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value);
     }
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? searchTerm)

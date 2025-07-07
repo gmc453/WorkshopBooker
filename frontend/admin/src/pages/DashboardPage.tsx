@@ -1,17 +1,36 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import BookingList from '../components/BookingList'
-import MyBookingsList from '../components/MyBookingsList'
 import Header from '../components/Header'
 import '../App.css'
 import type { FC } from 'react'
 import { useMyWorkshops } from '../hooks/useMyWorkshops'
-import { Loader2, Building, Calendar } from 'lucide-react'
+import { Loader2, Building, Calendar, Filter, Clock, CheckCircle, AlertCircle, XCircle, Search } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
+// Statusy rezerwacji
+const BOOKING_STATUSES = [
+  { value: 'all', label: 'Wszystkie', icon: <Clock className="w-4 h-4" /> },
+  { value: '0', label: 'Oczekujące', icon: <AlertCircle className="w-4 h-4 text-yellow-500" /> },
+  { value: '1', label: 'Potwierdzone', icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
+  { value: '2', label: 'Zakończone', icon: <CheckCircle className="w-4 h-4 text-blue-500" /> },
+  { value: '3', label: 'Anulowane', icon: <XCircle className="w-4 h-4 text-red-500" /> }
+]
+
 const DashboardPage: FC = () => {
-  const [selectedWorkshopId, setSelectedWorkshopId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'my' | 'all'>('my')
-  const { data: workshops, isLoading: isLoadingWorkshops, isError: isWorkshopsError } = useMyWorkshops()
+  // Warsztaty i filtry
+  const [selectedWorkshopId, setSelectedWorkshopId] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [searchQuery, setSearchQuery] = useState<string>('')
+  const { data: workshops, isLoading: isLoadingWorkshops } = useMyWorkshops()
+  
+  // Memoizacja dostępnych warsztatów ze wszystkimi opcjami
+  const workshopOptions = useMemo(() => {
+    if (!workshops) return [{ id: 'all', name: 'Wszystkie warsztaty' }]
+    return [
+      { id: 'all', name: 'Wszystkie warsztaty' },
+      ...workshops
+    ]
+  }, [workshops])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -45,94 +64,91 @@ const DashboardPage: FC = () => {
           </Link>
         </div>
 
-        {/* Wybór warsztatu */}
+        {/* Filtrowanie i wyszukiwanie rezerwacji */}
         <div className="mb-6 bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Wybierz warsztat</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">Filtrowanie rezerwacji</h3>
+            <div className="flex items-center text-sm text-gray-500">
+              <Filter className="h-4 w-4 mr-1" />
+              <span>Filtruj wyniki</span>
+            </div>
+          </div>
           
-          {isLoadingWorkshops ? (
-            <div className="flex items-center space-x-2 text-gray-600">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Ładowanie warsztatów...</span>
-            </div>
-          ) : isWorkshopsError ? (
-            <div className="text-red-600">
-              Wystąpił błąd podczas ładowania warsztatów. Odśwież stronę.
-            </div>
-          ) : !workshops || workshops.length === 0 ? (
-            <div className="text-gray-600">
-              Nie masz jeszcze żadnych warsztatów. Skontaktuj się z administratorem.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {workshops.map(workshop => (
-                <button
-                  key={workshop.id}
-                  onClick={() => setSelectedWorkshopId(workshop.id)}
-                  className={`p-4 rounded-lg border text-left transition-all ${
-                    selectedWorkshopId === workshop.id
-                      ? 'border-blue-500 bg-blue-50 shadow-sm'
-                      : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                  }`}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Wybór warsztatu */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Warsztat</label>
+              {isLoadingWorkshops ? (
+                <div className="flex items-center space-x-2 p-2 border border-gray-300 rounded-md bg-gray-50">
+                  <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
+                  <span className="text-gray-500">Ładowanie...</span>
+                </div>
+              ) : (
+                <select 
+                  value={selectedWorkshopId} 
+                  onChange={(e) => setSelectedWorkshopId(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <div className="flex items-start space-x-3">
-                    <Building className={`w-5 h-5 mt-0.5 ${
-                      selectedWorkshopId === workshop.id ? 'text-blue-500' : 'text-gray-500'
-                    }`} />
-                    <div>
-                      <h4 className={`font-medium ${
-                        selectedWorkshopId === workshop.id ? 'text-blue-700' : 'text-gray-800'
-                      }`}>
-                        {workshop.name}
-                      </h4>
-                      {workshop.address && (
-                        <p className="text-sm text-gray-500 mt-1">{workshop.address}</p>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              ))}
+                  {workshopOptions.map(workshop => (
+                    <option key={workshop.id} value={workshop.id}>
+                      {workshop.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
+            
+            {/* Filtr statusu */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status rezerwacji</label>
+              <select 
+                value={statusFilter} 
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                {BOOKING_STATUSES.map(status => (
+                  <option key={status.value} value={status.value}>
+                    {status.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Wyszukiwanie */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Wyszukiwanie</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Search className="w-4 h-4 text-gray-500" />
+                </div>
+                <input 
+                  type="text" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Szukaj po nazwie usługi lub użytkowniku..."
+                  className="w-full pl-10 p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Lista rezerwacji */}
+        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+          {selectedWorkshopId === 'all' ? (
+            <BookingList 
+              workshopId={null} 
+              statusFilter={statusFilter}
+              searchQuery={searchQuery}
+            />
+          ) : (
+            <BookingList 
+              workshopId={selectedWorkshopId} 
+              statusFilter={statusFilter}
+              searchQuery={searchQuery}
+            />
           )}
         </div>
-        
-        <div className="border-b border-gray-200 mb-6">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              onClick={() => setActiveTab('my')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'my'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Moje rezerwacje
-            </button>
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'all'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Wszystkie rezerwacje
-            </button>
-          </nav>
-        </div>
-        
-        {activeTab === 'my' ? (
-          <MyBookingsList />
-        ) : (
-          selectedWorkshopId ? (
-            <BookingList workshopId={selectedWorkshopId} />
-          ) : (
-            <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-              <Building className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">Wybierz warsztat</h3>
-              <p className="text-gray-500">Aby zobaczyć rezerwacje, wybierz warsztat z listy powyżej.</p>
-            </div>
-          )
-        )}
       </main>
     </div>
   )

@@ -9,9 +9,22 @@ export const useConfirmBooking = (workshopId: string) => {
       const response = await apiClient.post(`/api/bookings/${bookingId}/confirm`)
       return response.data
     },
-    onSuccess: () => {
-      // Unieważnienie zapytania o rezerwacje dla danego warsztatu
-      queryClient.invalidateQueries({ queryKey: ['bookings', workshopId] })
+    onSuccess: (_data, variables) => {
+      // Natychmiastowa aktualizacja cache
+      queryClient.setQueryData(['bookings', workshopId], (oldData: any) => {
+        if (!oldData) return oldData;
+        
+        // Aktualizujemy status rezerwacji bezpośrednio w cache
+        return oldData.map((booking: any) => {
+          if (booking.id === variables) {
+            return { ...booking, status: 1 }; // 1 = Confirmed
+          }
+          return booking;
+        });
+      });
+      
+      // Następnie invalidujemy zapytanie, aby dane zostały odświeżone
+      queryClient.invalidateQueries({ queryKey: ['bookings', workshopId] });
     }
   })
 } 

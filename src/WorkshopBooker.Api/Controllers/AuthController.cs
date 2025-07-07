@@ -21,15 +21,27 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterUserCommand command)
     {
-        await _sender.Send(command);
-        return Ok();
+        var result = await _sender.Send(command);
+
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { error = result.Error, validationErrors = result.ValidationErrors });
+        }
+
+        return Ok(new { message = "Użytkownik został pomyślnie zarejestrowany" });
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginQuery query)
     {
-        var token = await _sender.Send(query);
-        var response = new AuthResponse(token);
+        var result = await _sender.Send(query);
+
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { error = result.Error, validationErrors = result.ValidationErrors });
+        }
+
+        var response = new AuthResponse(result.Value);
         return Ok(response);
     }
 }

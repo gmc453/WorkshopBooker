@@ -1,151 +1,112 @@
-import { createContext, useContext, useState, useEffect } from 'react'
-import type { ReactNode } from 'react'
-import apiClient from '../api/axiosConfig'
+import { createContext, useState, useContext, useEffect, type ReactNode } from 'react'
 import { jwtDecode } from 'jwt-decode'
 
-// Interfejs dla zdekodowanego tokenu JWT
-interface DecodedToken {
-  exp: number;
-  sub: string;
-  email?: string;
-  [key: string]: any;
-}
-
-// Definiujemy typ dla kontekstu autentykacji
-type AuthContextType = {
+export type AuthContextType = {
   isAuthenticated: boolean
-  isLoading: boolean
-  userEmail: string | null
+  token: string | null
   login: (token: string) => void
   logout: () => void
+  isLoading: boolean
+  userId: string | null
+  userEmail: string | null
+  userRole: string | null
 }
 
-// Tworzymy kontekst z domyślnymi wartościami
-const AuthContext = createContext<AuthContextType>({
+export const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
-  isLoading: true,
-  userEmail: null,
+  token: null,
   login: () => {},
-  logout: () => {}
+  logout: () => {},
+  isLoading: true,
+  userId: null,
+  userEmail: null,
+  userRole: null
 })
 
-// Props dla AuthProvider
+interface JwtPayload {
+  nameid: string
+  email: string
+  role: string
+  exp: number
+}
+
 type AuthProviderProps = {
   children: ReactNode
 }
 
-// Funkcja pomocnicza do sprawdzania ważności tokenu
-const isTokenValid = (token: string): boolean => {
-  try {
-    const decoded = jwtDecode<DecodedToken>(token)
-    // Sprawdź czy token nie wygasł (exp to czas wygaśnięcia w sekundach od epoki Unix)
-    return decoded.exp * 1000 > Date.now()
-  } catch (error) {
-    console.error("Błąd dekodowania tokenu:", error)
-    return false
-  }
-}
-
-// Komponent dostawcy kontekstu autentykacji
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [userId, setUserId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [userRole, setUserRole] = useState<string | null>(null)
 
-  // Sprawdzamy, czy token istnieje w localStorage przy pierwszym załadowaniu
   useEffect(() => {
-    const checkAuth = async () => {
-      const token = localStorage.getItem('authToken')
-      
-      if (token && isTokenValid(token)) {
-        try {
-          // Opcjonalnie: możesz tutaj dodać zapytanie do API, aby zweryfikować token po stronie serwera
-          // const response = await apiClient.get('/api/auth/verify-token')
-          
-          // Zdekoduj token, aby pobrać dane użytkownika
-          const decoded = jwtDecode<DecodedToken>(token)
-          
-          setUserEmail(decoded.email || decoded.sub)
-          setIsAuthenticated(true)
-          
-          console.log('Użytkownik uwierzytelniony:', {
-            email: decoded.email || decoded.sub,
-            expiry: new Date(decoded.exp * 1000).toLocaleString()
-          })
-        } catch (error) {
-          console.error('Błąd weryfikacji tokenu:', error)
-          localStorage.removeItem('authToken')
-          setIsAuthenticated(false)
+    const storedToken = localStorage.getItem('adminToken')
+    if (storedToken) {
+      try {
+        const decoded = jwtDecode<JwtPayload>(storedToken)
+        // Sprawdzenie czy token nie wygasł
+        if (decoded.exp * 1000 > Date.now()) {
+          setToken(storedToken)
+          setUserId(decoded.nameid)
+          setUserEmail(decoded.email)
+          setUserRole(decoded.role)
+        } else {
+          // Token wygasł, wyloguj
+          localStorage.removeItem('adminToken')
+          setToken(null)
+          setUserId(null)
           setUserEmail(null)
+          setUserRole(null)
         }
-      } else {
-        if (token) {
-          // Token istnieje, ale jest nieważny
-          console.log('Znaleziono nieważny token - usuwam')
-          localStorage.removeItem('authToken')
-        }
-        setIsAuthenticated(false)
+      } catch (error) {
+        // Błędny token, wyloguj
+        localStorage.removeItem('adminToken')
+        setToken(null)
+        setUserId(null)
         setUserEmail(null)
+        setUserRole(null)
       }
-      
-      setIsLoading(false)
     }
-
-    checkAuth()
+    setIsLoading(false)
   }, [])
 
-  // Funkcja logowania - zapisuje token i ustawia stan autentykacji
-  const login = (token: string) => {
+  const login = (newToken: string) => {
     try {
-      if (isTokenValid(token)) {
-        localStorage.setItem('authToken', token)
-        
-        // Zdekoduj token, aby pobrać dane użytkownika
-        const decoded = jwtDecode<DecodedToken>(token)
-        setUserEmail(decoded.email || decoded.sub)
-        
-        setIsAuthenticated(true)
-        console.log('Zalogowano pomyślnie')
-      } else {
-        throw new Error('Otrzymano nieważny token')
-      }
+      const decoded = jwtDecode<JwtPayload>(newToken)
+      localStorage.setItem('adminToken', newToken)
+      setToken(newToken)
+      setUserId(decoded.nameid)
+      setUserEmail(decoded.email)
+      setUserRole(decoded.role)
     } catch (error) {
-      console.error('Błąd podczas logowania:', error)
-      logout()
+      console.error('Błąd dekodowania tokenu:', error)
     }
   }
 
-  // Funkcja wylogowania - usuwa token i resetuje stan autentykacji
   const logout = () => {
-    localStorage.removeItem('authToken')
-    setIsAuthenticated(false)
+    localStorage.removeItem('adminToken')
+    setToken(null)
+    setUserId(null)
     setUserEmail(null)
-    console.log('Wylogowano pomyślnie')
-  }
-
-  // Wartości przekazywane przez kontekst
-  const contextValue: AuthContextType = {
-    isAuthenticated,
-    isLoading,
-    userEmail,
-    login,
-    logout
+    setUserRole(null)
   }
 
   return (
-    <AuthContext.Provider value={contextValue}>
+    <AuthContext.Provider value={{ 
+      isAuthenticated: !!token, 
+      token,
+      login,
+      logout,
+      isLoading,
+      userId,
+      userEmail,
+      userRole
+    }}>
       {children}
     </AuthContext.Provider>
   )
 }
 
-// Własny hook ułatwiający korzystanie z kontekstu
-export const useAuth = () => {
-  const context = useContext(AuthContext)
-  
-  if (!context) {
-    throw new Error('useAuth musi być używany wewnątrz AuthProvider')
-  }
-  
-  return context
-} 
+export const useAuth = () => useContext(AuthContext) 

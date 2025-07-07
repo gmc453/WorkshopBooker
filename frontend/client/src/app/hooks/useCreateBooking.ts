@@ -24,6 +24,7 @@ export function useCreateBooking() {
   return {
     mutate: mutation.mutate,
     isLoading: mutation.isPending,
-    error: mutation.error
+    error: mutation.error,
+    isSuccess: mutation.isSuccess
   };
 } 

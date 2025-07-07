@@ -13,4 +13,5 @@ export type Workshop = {
     description: string;
     address: string | null;
     services: Service[];
+    rating?: number; // Opcjonalna ocena warsztatu
 };

@@ -11,12 +11,20 @@ const apiClient = axios.create({
 // Dodajemy interceptor, który będzie automatycznie dodawał token do nagłówków
 apiClient.interceptors.request.use(
   (config) => {
-    // Pobieramy token z localStorage
-    const token = localStorage.getItem('authToken')
+    // Pobieramy token z localStorage - używamy klucza 'adminToken' zgodnie z AuthContext
+    const token = localStorage.getItem('adminToken')
+    
+    console.log('🔍 Debug autoryzacji:')
+    console.log('- Token exists:', !!token)
+    console.log('- Token value:', token ? token.substring(0, 20) + '...' : 'null')
+    console.log('- Request URL:', config.url)
     
     // Jeśli token istnieje, dodajemy go do nagłówka Authorization
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+      console.log('✅ Authorization header added')
+    } else {
+      console.log('❌ No token found - user needs to login')
     }
     
     console.log(`Wysyłam żądanie do: ${config.url}`, config)

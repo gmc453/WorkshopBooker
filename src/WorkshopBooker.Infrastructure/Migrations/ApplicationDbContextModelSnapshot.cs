@@ -31,18 +31,18 @@ namespace WorkshopBooker.Infrastructure.Migrations
                     b.Property<DateTime>("EndTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("WorkshopId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("WorkshopId");
+                    b.HasIndex("WorkshopId", "StartTime");
 
                     b.ToTable("AvailableSlots");
                 });
@@ -59,11 +59,11 @@ namespace WorkshopBooker.Infrastructure.Migrations
                     b.Property<Guid>("ServiceId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
                     b.Property<Guid>("SlotId")
                         .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -77,7 +77,7 @@ namespace WorkshopBooker.Infrastructure.Migrations
 
                     b.HasIndex("SlotId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "Status");
 
                     b.ToTable("Bookings");
                 });
@@ -89,17 +89,20 @@ namespace WorkshopBooker.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("Description")
-                        .HasColumnType("text");
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<int>("DurationInMinutes")
                         .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<decimal>("Price")
-                        .HasColumnType("numeric");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<Guid>("WorkshopId")
                         .HasColumnType("uuid");
@@ -117,17 +120,32 @@ namespace WorkshopBooker.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("HashedPassword")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("Role")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.HasKey("Id");
 
@@ -151,14 +169,16 @@ namespace WorkshopBooker.Infrastructure.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("Email")
                         .HasColumnType("text");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("text");
@@ -171,9 +191,22 @@ namespace WorkshopBooker.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Name");
+
                     b.HasIndex("UserId");
 
                     b.ToTable("Workshops");
+                });
+
+            modelBuilder.Entity("WorkshopBooker.Domain.Entities.AvailableSlot", b =>
+                {
+                    b.HasOne("WorkshopBooker.Domain.Entities.Workshop", "Workshop")
+                        .WithMany()
+                        .HasForeignKey("WorkshopId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Workshop");
                 });
 
             modelBuilder.Entity("WorkshopBooker.Domain.Entities.Booking", b =>
@@ -206,18 +239,7 @@ namespace WorkshopBooker.Infrastructure.Migrations
             modelBuilder.Entity("WorkshopBooker.Domain.Entities.Service", b =>
                 {
                     b.HasOne("WorkshopBooker.Domain.Entities.Workshop", "Workshop")
-                        .WithMany()
-                        .HasForeignKey("WorkshopId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Workshop");
-                });
-
-            modelBuilder.Entity("WorkshopBooker.Domain.Entities.AvailableSlot", b =>
-                {
-                    b.HasOne("WorkshopBooker.Domain.Entities.Workshop", "Workshop")
-                        .WithMany()
+                        .WithMany("Services")
                         .HasForeignKey("WorkshopId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -237,6 +259,11 @@ namespace WorkshopBooker.Infrastructure.Migrations
             modelBuilder.Entity("WorkshopBooker.Domain.Entities.User", b =>
                 {
                     b.Navigation("Workshops");
+                });
+
+            modelBuilder.Entity("WorkshopBooker.Domain.Entities.Workshop", b =>
+                {
+                    b.Navigation("Services");
                 });
 #pragma warning restore 612, 618
         }
