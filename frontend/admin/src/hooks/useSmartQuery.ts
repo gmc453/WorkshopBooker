@@ -1,12 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { RateLimitHandler } from '../api/rateLimitHandler';
 
+interface RetryState {
+  count: number;
+  lastRetryAt: number;
+}
+
 interface UseSmartQueryOptions<T> {
   queryFn: () => Promise<T>;
   deduplication?: boolean;
   debounceMs?: number;
   enabled?: boolean;
   retryOnRateLimit?: boolean;
+  maxRetries?: number;
+  baseRetryDelayMs?: number;
 }
 
 interface UseSmartQueryResult<T> {
@@ -24,7 +31,9 @@ export function useSmartQuery<T>(options: UseSmartQueryOptions<T>): UseSmartQuer
     deduplication = true,
     debounceMs = 300,
     enabled = true,
-    retryOnRateLimit = true
+    retryOnRateLimit = true,
+    maxRetries = 3,
+    baseRetryDelayMs = 1000
   } = options;
 
   const [data, setData] = useState<T | null>(null);
@@ -37,6 +46,7 @@ export function useSmartQuery<T>(options: UseSmartQueryOptions<T>): UseSmartQuer
   const pendingRequestRef = useRef<Promise<T> | null>(null);
   const rateLimitHandlerRef = useRef<RateLimitHandler | null>(null);
   const timeoutRef = useRef<number | null>(null);
+  const retryStateRef = useRef<RetryState>({ count: 0, lastRetryAt: 0 });
 
   // Inicjalizacja rate limit handler
   useEffect(() => {
@@ -49,6 +59,18 @@ export function useSmartQuery<T>(options: UseSmartQueryOptions<T>): UseSmartQuer
       );
     }
   }, []);
+
+  // Calculate exponential backoff delay with jitter
+  const calculateRetryDelay = useCallback((retryCount: number, serverRetryAfter?: number): number => {
+    if (serverRetryAfter) {
+      return serverRetryAfter * 1000;
+    }
+    
+    // Exponential backoff: 2^retryCount * baseDelay + jitter
+    const exponentialDelay = Math.pow(2, retryCount) * baseRetryDelayMs;
+    const jitter = Math.random() * 0.1 * exponentialDelay; // 10% jitter
+    return Math.min(exponentialDelay + jitter, 30000); // Cap at 30 seconds
+  }, [baseRetryDelayMs]);
 
   // Query function
   const executeQuery = useCallback(async () => {
@@ -83,6 +105,8 @@ export function useSmartQuery<T>(options: UseSmartQueryOptions<T>): UseSmartQuer
         }
       }
 
+      // Reset retry state on success
+      retryStateRef.current = { count: 0, lastRetryAt: 0 };
       setData(result);
     } catch (err: any) {
       if (err.name === 'AbortError') {
@@ -90,24 +114,52 @@ export function useSmartQuery<T>(options: UseSmartQueryOptions<T>): UseSmartQuer
       }
 
       if (err.response?.status === 429 && retryOnRateLimit) {
+        // Check if we've exceeded max retries
+        if (retryStateRef.current.count >= maxRetries) {
+          setError(new Error(`Maximum retry attempts (${maxRetries}) exceeded for rate limited query`));
+          setIsRateLimited(false);
+          retryStateRef.current = { count: 0, lastRetryAt: 0 };
+          return;
+        }
+
+        // Circuit breaker: prevent retry storms
+        const now = Date.now();
+        const timeSinceLastRetry = now - retryStateRef.current.lastRetryAt;
+        if (timeSinceLastRetry < 1000) { // Minimum 1 second between retries
+          setError(new Error('Rate limit retry prevented due to circuit breaker'));
+          return;
+        }
+
         setIsRateLimited(true);
         setRateLimitInfo(err.response.data);
+        retryStateRef.current.count++;
+        retryStateRef.current.lastRetryAt = now;
         
-        // Automatyczny retry po czasie
+        // Calculate retry delay with exponential backoff
+        const retryDelay = calculateRetryDelay(
+          retryStateRef.current.count - 1,
+          err.response.data?.retryAfterSeconds
+        );
+        
+        // Schedule retry with proper safeguards
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current);
         }
         timeoutRef.current = setTimeout(() => {
           setIsRateLimited(false);
-          executeQuery();
-        }, err.response.data.retryAfterSeconds * 1000);
+          executeQuery().catch(() => {
+            // Silently handle errors from automatic retries
+            // The error will already be set in the catch block above
+          });
+        }, retryDelay);
       } else {
+        retryStateRef.current = { count: 0, lastRetryAt: 0 };
         setError(err);
       }
     } finally {
       setIsLoading(false);
     }
-  }, [queryFn, enabled, deduplication, retryOnRateLimit]);
+  }, [queryFn, enabled, deduplication, retryOnRateLimit, maxRetries, calculateRetryDelay]);
 
   // Debounced query function
   const debouncedQuery = useCallback(() => {
@@ -148,6 +200,8 @@ export function useSmartQuery<T>(options: UseSmartQueryOptions<T>): UseSmartQuer
   const refetch = useCallback(async () => {
     setIsRateLimited(false);
     setRateLimitInfo(null);
+    setError(null);
+    retryStateRef.current = { count: 0, lastRetryAt: 0 };
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
