@@ -38,7 +38,6 @@ namespace WorkshopBooker.Infrastructure.Migrations
                     PhoneNumber = table.Column<string>(type: "text", nullable: true),
                     Email = table.Column<string>(type: "text", nullable: true),
                     Address = table.Column<string>(type: "text", nullable: true),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: true)
@@ -88,7 +87,6 @@ namespace WorkshopBooker.Infrastructure.Migrations
                     RequiredEquipment = table.Column<string>(type: "text", nullable: false),
                     Category = table.Column<int>(type: "integer", nullable: false),
                     IsPopular = table.Column<bool>(type: "boolean", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     PreparationInstructions = table.Column<string>(type: "text", nullable: true),
                     AverageRating = table.Column<double>(type: "double precision", nullable: false),
                     ReviewCount = table.Column<int>(type: "integer", nullable: false)
