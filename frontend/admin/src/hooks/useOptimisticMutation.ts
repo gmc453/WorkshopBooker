@@ -103,7 +103,7 @@ export function useOptimisticMutation<TData, TVariables>(
       retryCountRef.current = 0;
       return result;
     } catch (err: any) {
-      if (err.response?.status === 429 && retryOnRateLimit && retryCountRef.current < maxRetries) {
+      if (err.response?.status === 429 && retryOnRateLimit && retryCountRef.current <= maxRetries) {
         if (isMountedRef.current) {
           setIsRateLimited(true);
           setRateLimitInfo(err.response.data);
@@ -117,8 +117,8 @@ export function useOptimisticMutation<TData, TVariables>(
           ? err.response.data.retryAfterSeconds * 1000 
           : baseRetryDelayMs * Math.pow(2, retryCountRef.current - 1);
         
-        // Add jitter (±25% of delay)
-        const jitter = retryAfterMs * 0.25 * (Math.random() - 0.5);
+        // Add jitter (±25% of delay) - corrected calculation
+        const jitter = retryAfterMs * 0.5 * (Math.random() - 0.5);
         const finalDelay = Math.max(1000, retryAfterMs + jitter); // Minimum 1s delay
         
         console.log(`Rate limited. Retrying in ${finalDelay}ms (attempt ${retryCountRef.current}/${maxRetries})`);
@@ -144,7 +144,7 @@ export function useOptimisticMutation<TData, TVariables>(
         // Max retries exceeded or non-rate-limit error
         let finalError = err;
         
-        if (err.response?.status === 429 && retryCountRef.current >= maxRetries) {
+        if (err.response?.status === 429 && retryCountRef.current > maxRetries) {
           const exhaustedError = new Error(`Maximum retry attempts (${maxRetries}) exceeded for rate-limited request`);
           exhaustedError.name = 'RetryExhaustedError';
           finalError = exhaustedError;
