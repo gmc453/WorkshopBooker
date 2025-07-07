@@ -32,7 +32,6 @@ public class GetSlotsQueryHandler : IRequestHandler<GetSlotsQuery, List<Availabl
                 EndTime = s.EndTime,
                 Status = s.Status,
                 WorkshopId = s.WorkshopId,
-                ServiceId = Guid.Empty,
                 IsAvailable = s.Status == Domain.Entities.SlotStatus.Available
             })
             .ToListAsync(cancellationToken);

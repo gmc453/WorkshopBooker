@@ -71,6 +71,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.StartTime).IsRequired();
             entity.Property(e => e.EndTime).IsRequired();
+            entity.Property(e => e.RowVersion).IsRowVersion();
         });
 
         // Konfiguracja Booking
@@ -93,7 +94,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.HasOne(e => e.Booking)
                 .WithMany()
                 .HasForeignKey(e => e.BookingId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
                 
             entity.HasOne(e => e.Workshop)
                 .WithMany()
@@ -112,12 +113,21 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
         
         modelBuilder.Entity<Service>()
             .HasIndex(e => e.WorkshopId);
+
+        modelBuilder.Entity<Service>()
+            .HasIndex(e => e.IsActive);
         
         modelBuilder.Entity<AvailableSlot>()
             .HasIndex(e => new { e.WorkshopId, e.StartTime });
+
+        modelBuilder.Entity<AvailableSlot>()
+            .HasIndex(e => e.Status);
         
         modelBuilder.Entity<Booking>()
             .HasIndex(e => new { e.UserId, e.Status });
+
+        modelBuilder.Entity<Booking>()
+            .HasIndex(e => e.CreatedAt);
             
         modelBuilder.Entity<Review>()
             .HasIndex(e => new { e.WorkshopId, e.CreatedAt });

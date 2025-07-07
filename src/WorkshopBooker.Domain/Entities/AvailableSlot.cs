@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace WorkshopBooker.Domain.Entities;
 
 public enum SlotStatus
@@ -11,6 +13,8 @@ public class AvailableSlot
     public Guid Id { get; private set; }
     public DateTime StartTime { get; private set; }
     public DateTime EndTime { get; private set; }
+    [Timestamp]
+    public byte[] RowVersion { get; private set; } = Array.Empty<byte>();
     public SlotStatus Status { get; private set; }
 
     public Guid WorkshopId { get; private set; }

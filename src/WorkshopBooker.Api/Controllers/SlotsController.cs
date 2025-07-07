@@ -30,6 +30,7 @@ public class SlotsController : ControllerBase
     }
 
     [HttpGet("workshops/{workshopId}/slots")]
+    [Authorize]
     [EnableRateLimiting("ReadPolicy")]
     public async Task<IActionResult> GetForWorkshop(Guid workshopId, [FromQuery] DateTime? dateFrom, [FromQuery] DateTime? dateTo)
     {

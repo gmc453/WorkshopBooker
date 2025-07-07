@@ -65,6 +65,7 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
             }
 
             slot.Book();
+            _context.AvailableSlots.Update(slot);
 
             var booking = new Booking(
                 Guid.NewGuid(),
@@ -80,8 +81,16 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
             );
 
             _context.Bookings.Add(booking);
-            await _context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return Result<Guid>.Failure("Wybrany termin jest już niedostępny");
+            }
 
             try
             {

@@ -31,8 +31,7 @@ public class CreateSlotCommandHandler : IRequestHandler<CreateSlotCommand, Guid>
         }
 
         bool overlaps = await _context.AvailableSlots.AnyAsync(s => s.WorkshopId == request.WorkshopId &&
-            ((request.StartTime >= s.StartTime && request.StartTime < s.EndTime) ||
-             (request.EndTime > s.StartTime && request.EndTime <= s.EndTime)), cancellationToken);
+            request.StartTime < s.EndTime && request.EndTime > s.StartTime, cancellationToken);
         if (overlaps)
         {
             throw new Exception("Slot overlaps with existing");

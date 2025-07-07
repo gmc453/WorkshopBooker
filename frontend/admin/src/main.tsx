@@ -12,6 +12,7 @@ import SlotsPage from './pages/SlotsPage/index'
 import AnalyticsPage from './pages/AnalyticsPage'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
+import ErrorBoundary from './components/ErrorBoundary'
 
 const queryClient = new QueryClient()
 
@@ -50,9 +51,11 @@ const router = createBrowserRouter([
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>
+      </ErrorBoundary>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   </StrictMode>,
