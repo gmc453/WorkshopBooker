@@ -1,6 +1,7 @@
 // src/WorkshopBooker.Api/Controllers/ServicesController.cs
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using WorkshopBooker.Application.Services.Commands.CreateService;
 using WorkshopBooker.Application.Services.Commands.UpdateService;
 using WorkshopBooker.Application.Services.Commands.DeleteService;
@@ -12,6 +13,7 @@ namespace WorkshopBooker.Api.Controllers;
 
 [ApiController]
 [Route("api/workshops/{workshopId}/services")]
+[Authorize]
 public class ServicesController : ControllerBase
 {
     private readonly ISender _sender;

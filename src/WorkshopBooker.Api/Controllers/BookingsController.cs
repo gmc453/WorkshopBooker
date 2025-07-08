@@ -43,6 +43,7 @@ public class BookingsController : ControllerBase
     }
 
     [HttpGet("~/api/workshops/{workshopId}/bookings")]
+    [Authorize]
     [EnableRateLimiting("ReadPolicy")]
     public async Task<IActionResult> GetForWorkshop(Guid workshopId)
     {

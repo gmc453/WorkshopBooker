@@ -34,7 +34,7 @@ public class DeleteSlotCommandHandler : IRequestHandler<DeleteSlotCommand>
         var currentUser = _currentUserProvider.UserId;
         if (currentUser == null || slot.Workshop.UserId != currentUser)
         {
-            throw new UnauthorizedAccessException();
+            throw new WorkshopBooker.Application.Common.Exceptions.UnauthorizedAccessException();
         }
 
         _context.AvailableSlots.Remove(slot);

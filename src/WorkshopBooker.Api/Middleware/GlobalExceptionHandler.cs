@@ -44,7 +44,7 @@ public class GlobalExceptionHandler
         context.Response.StatusCode = exception switch
         {
             ArgumentException => (int)HttpStatusCode.BadRequest,
-            UnauthorizedAccessException => (int)HttpStatusCode.Unauthorized,
+            WorkshopBooker.Application.Common.Exceptions.UnauthorizedAccessException => (int)HttpStatusCode.Unauthorized,
             InvalidOperationException => (int)HttpStatusCode.BadRequest,
             SlotOverlapException => (int)HttpStatusCode.Conflict,
             WorkshopNotFoundException => (int)HttpStatusCode.NotFound,

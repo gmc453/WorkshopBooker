@@ -25,6 +25,7 @@ public class WorkshopsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize]
     [EnableRateLimiting("WritePolicy")]
     public async Task<IActionResult> Create(CreateWorkshopCommand command)
     {
@@ -83,6 +84,7 @@ public class WorkshopsController : ControllerBase
         return NoContent();
     }
     [HttpDelete("{id}")]
+    [Authorize]
     [EnableRateLimiting("WritePolicy")]
     public async Task<IActionResult> Delete(Guid id)
     {
