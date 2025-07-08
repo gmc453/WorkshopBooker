@@ -13,7 +13,6 @@ namespace WorkshopBooker.Api.Controllers;
 
 [ApiController]
 [Route("api/workshops/{workshopId}/services")]
-[Authorize]
 public class ServicesController : ControllerBase
 {
     private readonly ISender _sender;
@@ -24,6 +23,7 @@ public class ServicesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize]
     [EnableRateLimiting("WritePolicy")]
     public async Task<IActionResult> Create(Guid workshopId, CreateServiceCommand command)
     {
@@ -49,6 +49,7 @@ public class ServicesController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize]
     [EnableRateLimiting("WritePolicy")]
     public async Task<IActionResult> Update(Guid workshopId, Guid id, UpdateServiceCommand command)
     {
@@ -63,6 +64,7 @@ public class ServicesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize]
     [EnableRateLimiting("WritePolicy")]
     public async Task<IActionResult> Delete(Guid workshopId, Guid id)
     {

@@ -8,7 +8,7 @@ public class BackgroundJobService : IBackgroundJobService, IDisposable
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<BackgroundJobService> _logger;
-    private readonly ConcurrentBag<Task> _runningTasks = new();
+    private readonly ConcurrentQueue<Task> _runningTasks = new();
     private bool _disposed = false;
 
     public BackgroundJobService(IServiceProvider serviceProvider, ILogger<BackgroundJobService> logger)
@@ -20,7 +20,7 @@ public class BackgroundJobService : IBackgroundJobService, IDisposable
     public async Task EnqueueAsync(Func<IServiceProvider, Task> job)
     {
         var task = Task.Run(() => ExecuteSafely(job));
-        _runningTasks.Add(task);
+        _runningTasks.Enqueue(task);
         
         _ = task.ContinueWith(t => CleanupCompletedTasks(), TaskContinuationOptions.ExecuteSynchronously);
         
@@ -33,8 +33,8 @@ public class BackgroundJobService : IBackgroundJobService, IDisposable
         if (delay < TimeSpan.Zero)
             delay = TimeSpan.Zero;
 
-        var task = Task.Delay(delay).ContinueWith(async _ => await ExecuteSafely(job), TaskContinuationOptions.ExecuteSynchronously);
-        _runningTasks.Add(task);
+        var task = Task.Delay(delay).ContinueWith(_ => ExecuteSafely(job), TaskContinuationOptions.ExecuteSynchronously);
+        _runningTasks.Enqueue(task);
         
         _ = task.ContinueWith(t => CleanupCompletedTasks(), TaskContinuationOptions.ExecuteSynchronously);
         
@@ -57,10 +57,18 @@ public class BackgroundJobService : IBackgroundJobService, IDisposable
     {
         try
         {
-            var completedTasks = _runningTasks.Where(t => t.IsCompleted).ToArray();
-            foreach (var task in completedTasks)
+            var remainingTasks = new ConcurrentQueue<Task>();
+            while (_runningTasks.TryDequeue(out var task))
             {
-                _runningTasks.TryTake(out _);
+                if (!task.IsCompleted)
+                {
+                    remainingTasks.Enqueue(task);
+                }
+            }
+            
+            while (remainingTasks.TryDequeue(out var task))
+            {
+                _runningTasks.Enqueue(task);
             }
         }
         catch (Exception ex)

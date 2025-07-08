@@ -36,7 +36,7 @@ public class GetAvailableSlotsQueryHandler : IRequestHandler<GetAvailableSlotsQu
             query = query.Where(s => s.StartTime <= request.DateTo.Value);
 
         var slots = await query
-            .Where(s => (s.EndTime - s.StartTime).TotalMinutes >= service.DurationInMinutes)
+            .Where(s => s.StartTime.AddMinutes(service.DurationInMinutes) <= s.EndTime)
             .OrderBy(s => s.StartTime)
             .ToListAsync(cancellationToken);
 

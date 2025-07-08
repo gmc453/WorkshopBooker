@@ -32,11 +32,18 @@ public class GetWorkshopAnalyticsQueryHandler : IRequestHandler<GetWorkshopAnaly
 
         // Pobierz rezerwacje w danym okresie
         var bookings = await _context.Bookings
-            .Include(b => b.Service)
-            .Include(b => b.Slot)
             .Where(b => b.Slot.WorkshopId == request.WorkshopId && 
                        b.Slot.StartTime >= request.StartDate && 
                        b.Slot.StartTime <= request.EndDate)
+            .Select(b => new
+            {
+                b.Id,
+                b.Service.Price,
+                b.Service.DurationInMinutes,
+                ServiceId = b.Service.Id,
+                b.Service.Name,
+                b.Slot.StartTime
+            })
             .ToListAsync(cancellationToken);
 
         // Pobierz recenzje
@@ -45,25 +52,24 @@ public class GetWorkshopAnalyticsQueryHandler : IRequestHandler<GetWorkshopAnaly
             .ToListAsync(cancellationToken);
 
         // Oblicz podstawowe KPI
-        var monthlyRevenue = bookings.Sum(b => b.Service.Price);
+        var monthlyRevenue = bookings.Sum(b => b.Price);
         var monthlyBookings = bookings.Count;
         var averageRating = reviews.Any() ? reviews.Average(r => r.Rating) : 0;
         var totalReviews = reviews.Count;
-        var averageServiceTime = bookings.Any() ? bookings.Average(b => b.Service.DurationInMinutes) / 60.0 : 0;
+        var averageServiceTime = bookings.Any() ? bookings.Average(b => b.DurationInMinutes) / 60.0 : 0;
 
         // Oblicz trendy (porównanie z poprzednim okresem)
         var previousStartDate = request.StartDate.AddDays(-(request.EndDate - request.StartDate).Days);
         var previousEndDate = request.StartDate.AddDays(-1);
 
         var previousBookings = await _context.Bookings
-            .Include(b => b.Service)
-            .Include(b => b.Slot)
             .Where(b => b.Slot.WorkshopId == request.WorkshopId && 
                        b.Slot.StartTime >= previousStartDate && 
                        b.Slot.StartTime <= previousEndDate)
+            .Select(b => new { b.Service.Price })
             .ToListAsync(cancellationToken);
 
-        var previousRevenue = previousBookings.Sum(b => b.Service.Price);
+        var previousRevenue = previousBookings.Sum(b => b.Price);
         var previousBookingsCount = previousBookings.Count;
 
         var revenueGrowth = previousRevenue > 0 ? ((monthlyRevenue - previousRevenue) / previousRevenue) * 100 : 0;
@@ -71,13 +77,13 @@ public class GetWorkshopAnalyticsQueryHandler : IRequestHandler<GetWorkshopAnaly
 
         // Rozkład usług
         var serviceDistribution = bookings
-            .GroupBy(b => b.Service)
+            .GroupBy(b => new { ServiceId = b.ServiceId, b.Name })
             .Select(g => new ServiceAnalyticsDto
             {
-                ServiceId = g.Key.Id,
+                ServiceId = g.Key.ServiceId,
                 ServiceName = g.Key.Name,
                 BookingCount = g.Count(),
-                TotalRevenue = g.Sum(b => b.Service.Price),
+                TotalRevenue = g.Sum(b => b.Price),
                 Percentage = (double)g.Count() / monthlyBookings * 100,
                 AverageRating = reviews.Where(r => g.Any(b => b.Id == r.BookingId)).Any() ? 
                     reviews.Where(r => g.Any(b => b.Id == r.BookingId)).Average(r => r.Rating) : 0
@@ -87,7 +93,7 @@ public class GetWorkshopAnalyticsQueryHandler : IRequestHandler<GetWorkshopAnaly
 
         // Popularne godziny
         var timeSlotDistribution = bookings
-            .GroupBy(b => b.Slot.StartTime.Hour)
+            .GroupBy(b => b.StartTime.Hour)
             .Select(g => new TimeSlotAnalyticsDto
             {
                 TimeSlot = $"{g.Key:00}:00-{(g.Key + 1):00}:00",
@@ -99,11 +105,11 @@ public class GetWorkshopAnalyticsQueryHandler : IRequestHandler<GetWorkshopAnaly
 
         // Przychody w czasie
         var revenueOverTime = bookings
-            .GroupBy(b => b.Slot.StartTime.Date)
+            .GroupBy(b => b.StartTime.Date)
             .Select(g => new RevenueDataPointDto
             {
                 Date = g.Key,
-                Revenue = g.Sum(b => b.Service.Price),
+                Revenue = g.Sum(b => b.Price),
                 Bookings = g.Count()
             })
             .OrderBy(r => r.Date)

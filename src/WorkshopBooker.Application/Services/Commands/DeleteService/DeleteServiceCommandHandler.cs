@@ -29,9 +29,10 @@ public class DeleteServiceCommandHandler : IRequestHandler<DeleteServiceCommand>
             .Include(s => s.Workshop)
             .FirstOrDefaultAsync(s => s.Id == request.Id && s.WorkshopId == request.WorkshopId, cancellationToken);
 
+        // ✅ POPRAWKA: DELETE jest idempotentny - jeśli nie istnieje, kończymy bez błędu
         if (service is null)
         {
-            throw new ServiceNotFoundException();
+            return; // Idempotent - nie rzucamy wyjątku
         }
 
         // Sprawdź autoryzację - tylko właściciel warsztatu może usunąć usługi

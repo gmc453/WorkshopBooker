@@ -2,6 +2,7 @@ using WorkshopBooker.Api.Extensions;
 using WorkshopBooker.Api.Middleware;
 using WorkshopBooker.Infrastructure;
 using System.Threading.RateLimiting;
+using WorkshopBooker.Application.Common.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 

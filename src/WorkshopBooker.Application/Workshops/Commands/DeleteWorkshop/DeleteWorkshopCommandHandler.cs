@@ -27,9 +27,10 @@ public class DeleteWorkshopCommandHandler : IRequestHandler<DeleteWorkshopComman
         var workshop = await _context.Workshops
             .FirstOrDefaultAsync(w => w.Id == request.Id, cancellationToken);
 
+        // ✅ POPRAWKA: DELETE jest idempotentny - jeśli nie istnieje, kończymy bez błędu
         if (workshop is null)
         {
-            throw new WorkshopNotFoundException();
+            return; // Idempotent - nie rzucamy wyjątku
         }
 
         // Sprawdź autoryzację - tylko właściciel może usunąć warsztat

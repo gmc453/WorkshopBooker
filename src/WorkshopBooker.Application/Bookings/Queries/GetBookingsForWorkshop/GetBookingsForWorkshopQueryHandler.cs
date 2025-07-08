@@ -40,8 +40,6 @@ public class GetBookingsForWorkshopQueryHandler : IRequestHandler<GetBookingsFor
         }
 
         var bookings = await _context.Bookings
-            .Include(b => b.Service)
-            .Include(b => b.Slot)
             .Where(b => b.Service.WorkshopId == request.WorkshopId)
             .Select(b => new BookingDto
             {
