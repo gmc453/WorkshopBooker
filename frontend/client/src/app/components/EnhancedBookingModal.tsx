@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { useBookingFlow } from '../../hooks/useBookingFlow';
