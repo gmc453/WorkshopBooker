@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using WorkshopBooker.Application.Analytics.Queries.GetWorkshopAnalytics;
+using WorkshopBooker.Application.Analytics.Queries.GetGlobalAnalytics;
 using WorkshopBooker.Application.Analytics.Dtos;
 using WorkshopBooker.Application.Common.Constants;
 using Microsoft.AspNetCore.RateLimiting;
@@ -138,5 +139,33 @@ public class AnalyticsController : ControllerBase
         // This could include double bookings, overlapping slots, etc.
         
         return Task.FromResult<IActionResult>(Ok(new { message = "Conflict detection endpoint - to be implemented" }));
+    }
+
+    [HttpGet("quick-stats")]
+    public async Task<IActionResult> GetQuickStats(Guid workshopId)
+    {
+        // Szybkie statystyki dla dashboard dropdown
+        var query = new GetWorkshopAnalyticsQuery
+        {
+            WorkshopId = workshopId,
+            StartDate = DateTime.UtcNow.AddDays(-30),
+            EndDate = DateTime.UtcNow
+        };
+
+        var result = await _sender.Send(query);
+        
+        if (result.IsSuccess && result.Value != null)
+        {
+            var quickStats = new
+            {
+                monthlyRevenue = result.Value.MonthlyRevenue,
+                monthlyBookings = result.Value.MonthlyBookings,
+                averageRating = result.Value.AverageRating,
+                revenueGrowth = result.Value.RevenueGrowth
+            };
+            return Ok(quickStats);
+        }
+        
+        return BadRequest(result.Error);
     }
 } 

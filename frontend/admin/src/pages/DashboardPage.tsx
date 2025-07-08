@@ -166,15 +166,43 @@ const DashboardPage: FC = () => {
             </div>
           </Link>
           {workshops && workshops.length > 0 && (
-            <Link to={`/analytics/${workshops[0].id}`} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all flex items-center">
-              <div className="bg-purple-100 rounded-full p-3 mr-4 text-purple-600">
-                <TrendingUp className="h-6 w-6" />
+            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center">
+                  <div className="bg-purple-100 rounded-full p-3 mr-4 text-purple-600">
+                    <TrendingUp className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium">Analityka</h3>
+                    <p className="text-sm text-gray-500">Przegląd wyników</p>
+                  </div>
+                </div>
+                <Link 
+                  to="/analytics/global" 
+                  className="text-xs bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
+                >
+                  Wszystkie →
+                </Link>
               </div>
-              <div>
-                <h3 className="font-medium">Analityka</h3>
-                <p className="text-sm text-gray-500">Przeglądaj statystyki</p>
+              
+              <div className="space-y-2">
+                {workshops.slice(0, 3).map((workshop: any) => (
+                  <Link
+                    key={workshop.id}
+                    to={`/analytics/${workshop.id}`}
+                    className="flex items-center justify-between p-2 rounded hover:bg-gray-50 border"
+                  >
+                    <span className="font-medium">{workshop.name}</span>
+                    <span className="text-xs text-gray-500">📊 Zobacz</span>
+                  </Link>
+                ))}
+                {workshops.length > 3 && (
+                  <p className="text-xs text-gray-500 pt-2">
+                    +{workshops.length - 3} więcej warsztatów
+                  </p>
+                )}
               </div>
-            </Link>
+            </div>
           )}
         </div>
 

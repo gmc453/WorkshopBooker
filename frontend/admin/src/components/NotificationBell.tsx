@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, X, CheckCircle, AlertCircle, Info, Clock } from 'lucide-react';
+import { Bell, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import axios from 'axios';
 
 interface Notification {
@@ -20,7 +20,7 @@ export default function NotificationBell({ workshopId }: NotificationBellProps) 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Polling dla nowych powiadomień
@@ -145,12 +145,7 @@ export default function NotificationBell({ workshopId }: NotificationBellProps) 
           </div>
 
           <div className="max-h-64 overflow-y-auto">
-            {isLoading ? (
-              <div className="p-4 text-center text-gray-500">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto"></div>
-                <p className="mt-2">Ładowanie...</p>
-              </div>
-            ) : notifications.length === 0 ? (
+            {notifications.length === 0 ? (
               <div className="p-4 text-center text-gray-500">
                 <Bell className="h-8 w-8 mx-auto mb-2 text-gray-300" />
                 <p>Brak powiadomień</p>

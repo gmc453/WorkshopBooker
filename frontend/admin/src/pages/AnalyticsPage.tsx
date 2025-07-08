@@ -1,11 +1,17 @@
 // SKOPIUJ I ZASTĄP ZAWARTOŚĆ frontend/admin/src/pages/AnalyticsPage.tsx
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Star, Clock, Calendar, Download, FileText } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, TrendingUp, Calendar, Download, FileText, Users, Target } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import jsPDF from 'jspdf';
+import { useMyWorkshops } from '../hooks/useMyWorkshops';
+
+import { OverviewTab } from '../components/analytics/OverviewTab';
+import { CustomersTab } from '../components/analytics/CustomersTab';
+import { PredictionsTab } from '../components/analytics/PredictionsTab';
+import { SeasonalTab } from '../components/analytics/SeasonalTab';
 
 interface AnalyticsData {
   workshopId: string;
@@ -45,16 +51,49 @@ interface RevenueDataPoint {
 
 export default function AnalyticsPage() {
   const { workshopId } = useParams<{ workshopId: string }>();
+  const navigate = useNavigate();
+  const { data: allWorkshops } = useMyWorkshops();
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState('30'); // dni
+  const [activeTab, setActiveTab] = useState<'overview' | 'customers' | 'predictions' | 'seasonal'>('overview');
 
   useEffect(() => {
     if (workshopId) {
       fetchAnalytics();
     }
   }, [workshopId, timeRange]);
+
+  // Real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible' && workshopId) {
+        fetchAnalytics(); // Odśwież dane co 5 minut gdy tab jest aktywny
+      }
+    }, 5 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [workshopId]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.ctrlKey) {
+        switch (e.key) {
+          case '1': setActiveTab('overview'); break;
+          case '2': setActiveTab('customers'); break;
+          case '3': setActiveTab('predictions'); break;
+          case '4': setActiveTab('seasonal'); break;
+          case 'e': exportToCSV(); break;
+          case 'r': fetchAnalytics(); break;
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, []);
 
   const fetchAnalytics = async () => {
     try {
@@ -263,6 +302,19 @@ export default function AnalyticsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Breadcrumbs */}
+      <div className="bg-gray-50 border-b border-gray-200 py-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="flex items-center space-x-2 text-sm">
+            <Link to="/" className="text-gray-500 hover:text-gray-700">Dashboard</Link>
+            <span className="text-gray-400">›</span>
+            <Link to="/analytics/global" className="text-gray-500 hover:text-gray-700">Analityka</Link>
+            <span className="text-gray-400">›</span>
+            <span className="text-gray-900 font-medium">{analytics?.workshopName}</span>
+          </nav>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -273,24 +325,46 @@ export default function AnalyticsPage() {
               </Link>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Analityka</h1>
-                <p className="text-gray-600">{analytics.workshopName}</p>
+                <p className="text-gray-600">{analytics?.workshopName}</p>
               </div>
             </div>
             
-            {/* Time Range Selector and Export Buttons */}
+            {/* Workshop Switcher and Controls */}
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <label className="text-sm font-medium text-gray-700">Okres:</label>
+                <label className="text-sm font-medium text-gray-700">Warsztat:</label>
                 <select 
-                  value={timeRange} 
-                  onChange={(e) => setTimeRange(e.target.value)}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={workshopId} 
+                  onChange={(e) => navigate(`/analytics/${e.target.value}`)}
+                  className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
-                  <option value="7">7 dni</option>
-                  <option value="30">30 dni</option>
-                  <option value="90">90 dni</option>
-                  <option value="365">Rok</option>
+                  {allWorkshops?.map(workshop => (
+                    <option key={workshop.id} value={workshop.id}>
+                      {workshop.name}
+                    </option>
+                  ))}
                 </select>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <button 
+                  onClick={() => setTimeRange('7')}
+                  className={`px-3 py-1 text-xs rounded ${timeRange === '7' ? 'bg-purple-600 text-white' : 'bg-gray-200'}`}
+                >
+                  7d
+                </button>
+                <button 
+                  onClick={() => setTimeRange('30')}
+                  className={`px-3 py-1 text-xs rounded ${timeRange === '30' ? 'bg-purple-600 text-white' : 'bg-gray-200'}`}
+                >
+                  30d
+                </button>
+                <button 
+                  onClick={() => setTimeRange('90')}
+                  className={`px-3 py-1 text-xs rounded ${timeRange === '90' ? 'bg-purple-600 text-white' : 'bg-gray-200'}`}
+                >
+                  90d
+                </button>
               </div>
               
               <div className="flex items-center space-x-2">
@@ -314,142 +388,39 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
+      {/* Tab Navigation */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="-mb-px flex space-x-8">
+            {[
+              { id: 'overview', name: 'Przegląd', icon: TrendingUp },
+              { id: 'customers', name: 'Klienci', icon: Users },
+              { id: 'predictions', name: 'Prognozy', icon: Target },
+              { id: 'seasonal', name: 'Sezonowość', icon: Calendar },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`${
+                  activeTab === tab.id
+                    ? 'border-purple-500 text-purple-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center`}
+              >
+                <tab.icon className="w-4 h-4 mr-2" />
+                {tab.name}
+              </button>
+            ))}
+          </nav>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* Revenue Card */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Przychody</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(analytics.monthlyRevenue)}</p>
-                <div className="flex items-center mt-1">
-                  {safeNumber(analytics.revenueGrowth) >= 0 ? (
-                    <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                  ) : (
-                    <TrendingDown className="w-4 h-4 text-red-500 mr-1" />
-                  )}
-                  <span className={`text-sm ${safeNumber(analytics.revenueGrowth) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatPercentage(analytics.revenueGrowth)}
-                  </span>
-                </div>
-              </div>
-              <DollarSign className="w-8 h-8 text-green-500" />
-            </div>
-          </div>
-
-          {/* Bookings Card */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Rezerwacje</p>
-                <p className="text-2xl font-bold text-gray-900">{analytics.monthlyBookings}</p>
-                <div className="flex items-center mt-1">
-                  {safeNumber(analytics.bookingsGrowth) >= 0 ? (
-                    <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                  ) : (
-                    <TrendingDown className="w-4 h-4 text-red-500 mr-1" />
-                  )}
-                  <span className={`text-sm ${safeNumber(analytics.bookingsGrowth) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatPercentage(analytics.bookingsGrowth)}
-                  </span>
-                </div>
-              </div>
-              <Calendar className="w-8 h-8 text-blue-500" />
-            </div>
-          </div>
-
-          {/* Rating Card */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Średnia ocena</p>
-                <p className="text-2xl font-bold text-gray-900">{safeNumber(analytics.averageRating).toFixed(1)}</p>
-                <p className="text-sm text-gray-500">{analytics.totalReviews} recenzji</p>
-              </div>
-              <Star className="w-8 h-8 text-yellow-500" />
-            </div>
-          </div>
-
-          {/* Service Time Card */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Średni czas usługi</p>
-                <p className="text-2xl font-bold text-gray-900">{safeNumber(analytics.averageServiceTime).toFixed(1)}h</p>
-                <p className="text-sm text-gray-500">na rezerwację</p>
-              </div>
-              <Clock className="w-8 h-8 text-purple-500" />
-            </div>
-          </div>
-        </div>
-
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Popular Services */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Popularne usługi</h3>
-            {analytics.serviceDistribution.length > 0 ? (
-              <div className="space-y-4">
-                {analytics.serviceDistribution.slice(0, 5).map((service) => (
-                  <div key={service.serviceId} className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">{service.serviceName}</p>
-                      <p className="text-sm text-gray-500">{service.bookingCount} rezerwacji</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-gray-900">{formatCurrency(service.totalRevenue)}</p>
-                      <p className="text-sm text-gray-500">{safeNumber(service.percentage).toFixed(1)}%</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-center py-8">Brak danych o usługach w tym okresie</p>
-            )}
-          </div>
-
-          {/* Popular Time Slots */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Popularne godziny</h3>
-            {analytics.popularTimeSlots.length > 0 ? (
-              <div className="space-y-4">
-                {analytics.popularTimeSlots.slice(0, 5).map((slot, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">{slot.timeSlot}</p>
-                      <p className="text-sm text-gray-500">{slot.bookingCount} rezerwacji</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-gray-900">{safeNumber(slot.utilizationRate).toFixed(1)}%</p>
-                      <p className="text-sm text-gray-500">wykorzystanie</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-center py-8">Brak danych o slotach w tym okresie</p>
-            )}
-          </div>
-        </div>
-
-        {/* Revenue Trend */}
-        <div className="mt-8 bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Trend przychodów</h3>
-          {analytics.revenueOverTime.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-              {analytics.revenueOverTime.slice(-7).map((point, index) => (
-                <div key={index} className="text-center">
-                  <p className="text-sm font-medium text-gray-900">{formatCurrency(point.revenue)}</p>
-                  <p className="text-xs text-gray-500">{new Date(point.date).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' })}</p>
-                  <p className="text-xs text-gray-400">{point.bookings} rezerwacji</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500 text-center py-8">Brak danych o przychodach w tym okresie</p>
-          )}
-        </div>
+        {/* Render content based on active tab */}
+        {activeTab === 'overview' && <OverviewTab analytics={analytics} formatCurrency={formatCurrency} formatPercentage={formatPercentage} safeNumber={safeNumber} />}
+        {activeTab === 'customers' && workshopId && <CustomersTab workshopId={workshopId} />}
+        {activeTab === 'predictions' && workshopId && <PredictionsTab workshopId={workshopId} />}
+        {activeTab === 'seasonal' && workshopId && <SeasonalTab workshopId={workshopId} />}
       </div>
     </div>
   );
