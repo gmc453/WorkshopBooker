@@ -1,11 +1,11 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import BookingList from '../components/BookingList'
 import Header from '../components/Header'
 import '../App.css'
 import type { FC } from 'react'
 import { useSmartQuery } from '../hooks/useSmartQuery'
 import { SmartLoadingState, RateLimitStatus } from '../components/SmartLoadingState'
-import { Building, Calendar, Filter, Clock, CheckCircle, AlertCircle, XCircle, Search, TrendingUp } from 'lucide-react'
+import { Building, Calendar, Filter, Clock, CheckCircle, AlertCircle, XCircle, Search, TrendingUp, RefreshCw, Wifi, WifiOff } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import apiClient from '../api/axiosConfig'
 
@@ -24,6 +24,11 @@ const DashboardPage: FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
   
+  // Real-time updates state
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
+  
   // Memoizowana funkcja zapytania
   const fetchWorkshops = useCallback(() => {
     return apiClient.get('/api/workshops/my').then(res => res.data)
@@ -35,13 +40,51 @@ const DashboardPage: FC = () => {
     isLoading: isLoadingWorkshops,
     isRateLimited: isWorkshopsRateLimited,
     rateLimitInfo: workshopsRateLimitInfo,
-    error: workshopsError
+    error: workshopsError,
+    refetch: refetchWorkshops
   } = useSmartQuery({
     queryFn: fetchWorkshops,
     deduplication: true,
     debounceMs: 300
   })
   
+  // Manual polling dla real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (isOnline) {
+        refetchWorkshops();
+        setLastUpdated(new Date());
+      }
+    }, 30000); // Co 30 sekund
+
+    return () => clearInterval(interval);
+  }, [refetchWorkshops, isOnline]);
+
+  // Connection status monitoring
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Manual refresh function
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetchWorkshops();
+      setLastUpdated(new Date());
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   // Memoizacja dostępnych warsztatów ze wszystkimi opcjami
   const workshopOptions = useMemo(() => {
     if (!workshops) return [{ id: 'all', name: 'Wszystkie warsztaty' }]
@@ -62,9 +105,42 @@ const DashboardPage: FC = () => {
               <h2 className="text-2xl font-bold text-gray-800">Zarządzanie rezerwacjami</h2>
               <p className="text-gray-600">Przeglądaj i zarządzaj rezerwacjami w systemie</p>
             </div>
-            <div className="flex space-x-2">
-              <RateLimitStatus endpoint="/api/workshops/my" method="GET" />
-              <RateLimitStatus endpoint="/api/workshops/{id}/bookings" method="GET" />
+            <div className="flex items-center space-x-4">
+              {/* Connection Status */}
+              <div className="flex items-center space-x-2">
+                {isOnline ? (
+                  <Wifi className="h-4 w-4 text-green-500" />
+                ) : (
+                  <WifiOff className="h-4 w-4 text-red-500" />
+                )}
+                <span className={`text-sm ${isOnline ? 'text-green-600' : 'text-red-600'}`}>
+                  {isOnline ? 'Online' : 'Offline'}
+                </span>
+              </div>
+
+              {/* Last Updated */}
+              <div className="text-sm text-gray-500">
+                Ostatnia aktualizacja: {lastUpdated.toLocaleTimeString('pl-PL')}
+              </div>
+
+              {/* Manual Refresh Button */}
+              <button
+                onClick={handleManualRefresh}
+                disabled={isRefreshing || !isOnline}
+                className={`flex items-center space-x-2 px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                  isRefreshing || !isOnline
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                }`}
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span>{isRefreshing ? 'Odświeżanie...' : 'Odśwież'}</span>
+              </button>
+
+              <div className="flex space-x-2">
+                <RateLimitStatus endpoint="/api/workshops/my" method="GET" />
+                <RateLimitStatus endpoint="/api/workshops/{id}/bookings" method="GET" />
+              </div>
             </div>
           </div>
         </div>

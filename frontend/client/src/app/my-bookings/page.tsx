@@ -7,6 +7,8 @@ import { useMyBookings, Booking } from "../hooks/useMyBookings";
 import { format, parseISO, differenceInMinutes, isAfter } from "date-fns";
 import { pl } from "date-fns/locale";
 import { Calendar, Clock, CreditCard, CheckCircle, AlertCircle, XCircle, Search, Filter, Building } from 'lucide-react';
+import { SkeletonList } from "../components/SkeletonList";
+import { Breadcrumbs } from "../components/Breadcrumbs";
 
 export default function MyBookingsPage() {
   const { isAuthenticated } = useAuth();
@@ -124,15 +126,16 @@ export default function MyBookingsPage() {
 
   return (
     <div className="container mx-auto p-4 md:p-8">
+      <Breadcrumbs 
+        items={[
+          { label: "Moje rezerwacje" }
+        ]} 
+        className="mb-6"
+      />
       <h1 className="text-3xl font-bold mb-6">Moje rezerwacje</h1>
       
       {isLoading ? (
-        <div className="flex items-center justify-center p-12">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="w-12 h-12 rounded-full border-4 border-t-blue-500 border-gray-200 animate-spin"></div>
-            <p className="text-gray-600 font-medium">Ładowanie rezerwacji...</p>
-          </div>
-        </div>
+        <SkeletonList count={5} />
       ) : error ? (
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
           <div className="flex items-center space-x-3">

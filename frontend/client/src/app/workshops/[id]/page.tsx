@@ -4,10 +4,11 @@ import { useState, useEffect } from "react";
 import { useWorkshopDetails } from "../../hooks/useWorkshopDetails";
 import { useParams, useRouter } from "next/navigation";
 import { Service } from "../../types/workshop";
-import { EnhancedBookingModal } from "../../components/EnhancedBookingModal";
+import { BookingModal } from "../../components/BookingModal";
 import { useAuth } from "../../../context/AuthContext";
-import { MapPin, Clock, CreditCard, ArrowLeft, Star, Phone, Mail, Globe, ChevronRight, Briefcase } from "lucide-react";
+import { MapPin, Clock, CreditCard, ArrowLeft, Star, Phone, Mail, Globe, ChevronRight, Briefcase, Calendar, Image, Users, Award } from "lucide-react";
 import Link from "next/link";
+import { Breadcrumbs } from "../../components/Breadcrumbs";
 
 export default function WorkshopDetailsPage() {
   const params = useParams();
@@ -17,6 +18,30 @@ export default function WorkshopDetailsPage() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const { isAuthenticated } = useAuth();
   const router = useRouter();
+
+  // Mock data dla galerii (w rzeczywistej aplikacji to byłoby z API)
+  const galleryImages = [
+    '/api/placeholder/400/300?text=Warsztat+1',
+    '/api/placeholder/400/300?text=Warsztat+2',
+    '/api/placeholder/400/300?text=Warsztat+3',
+    '/api/placeholder/400/300?text=Warsztat+4',
+    '/api/placeholder/400/300?text=Warsztat+5',
+    '/api/placeholder/400/300?text=Warsztat+6'
+  ];
+
+  // Mock data dla najbliższych terminów
+  const upcomingSlots = [
+    { id: '1', date: '2024-01-15', time: '09:00', available: true },
+    { id: '2', date: '2024-01-15', time: '11:00', available: true },
+    { id: '3', date: '2024-01-16', time: '14:00', available: false }
+  ];
+
+  // Mock data dla podobnych warsztatów
+  const similarWorkshops = [
+    { id: '2', name: 'Warsztat Mechaniczny Premium', rating: 4.8, price: 'od 150 zł' },
+    { id: '3', name: 'Auto Serwis Express', rating: 4.6, price: 'od 120 zł' },
+    { id: '4', name: 'Warsztat Samochodowy 24h', rating: 4.4, price: 'od 100 zł' }
+  ];
 
   // Efekt do przewijania do góry przy wczytywaniu
   useEffect(() => {
@@ -98,13 +123,12 @@ export default function WorkshopDetailsPage() {
       {/* Ścieżka nawigacyjna */}
       <div className="bg-gray-50 dark:bg-gray-800 py-3 border-b border-gray-200 dark:border-gray-700">
         <div className="container mx-auto px-4">
-          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-            <Link href="/" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-              Strona główna
-            </Link>
-            <ChevronRight className="w-4 h-4 mx-2" />
-            <span className="font-medium text-gray-900 dark:text-white">{workshop.name}</span>
-          </div>
+          <Breadcrumbs 
+            items={[
+              { label: "Warsztaty", href: "/" },
+              { label: workshop.name }
+            ]} 
+          />
         </div>
       </div>
       
@@ -125,11 +149,49 @@ export default function WorkshopDetailsPage() {
                     <MapPin className="w-5 h-5 mr-1 text-gray-500" />
                     <span>{workshop.address}</span>
                   </div>
-                )}
-              </div>
+                              )}
             </div>
           </div>
         </div>
+
+        {/* Podobne warsztaty */}
+        <div className="mt-12">
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm">
+            <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-white flex items-center">
+              <Users className="w-5 h-5 mr-2 text-gray-500" />
+              Podobne warsztaty
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {similarWorkshops.map((workshop) => (
+                <Link 
+                  key={workshop.id} 
+                  href={`/workshops/${workshop.id}`}
+                  className="block p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-300 hover:shadow-md transition-all"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
+                      {workshop.name}
+                    </h3>
+                    <Award className="w-4 h-4 text-yellow-500" />
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center">
+                      {Array.from({ length: 5 }).map((_, index) => (
+                        <Star 
+                          key={index} 
+                          className={`w-3 h-3 ${index < Math.round(workshop.rating) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} 
+                        />
+                      ))}
+                      <span className="ml-1 text-gray-600 dark:text-gray-400">{workshop.rating}</span>
+                    </div>
+                    <span className="font-medium text-blue-600 dark:text-blue-400">{workshop.price}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
       </section>
       
       <div className="container mx-auto px-4 py-8">
@@ -187,10 +249,77 @@ export default function WorkshopDetailsPage() {
                 <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">{workshop.description}</p>
               </div>
             )}
+
+            {/* Godziny pracy */}
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm">
+              <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white flex items-center">
+                <Clock className="w-5 h-5 mr-2 text-gray-500" />
+                Godziny pracy
+              </h2>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Poniedziałek - Piątek</span>
+                  <span className="font-medium text-gray-900 dark:text-white">8:00 - 18:00</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Sobota</span>
+                  <span className="font-medium text-gray-900 dark:text-white">9:00 - 15:00</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Niedziela</span>
+                  <span className="font-medium text-gray-900 dark:text-white">Zamknięte</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Najbliższe terminy */}
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm">
+              <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white flex items-center">
+                <Calendar className="w-5 h-5 mr-2 text-gray-500" />
+                Najbliższe terminy
+              </h2>
+              <div className="space-y-2">
+                {upcomingSlots.map((slot) => (
+                  <div key={slot.id} className="flex justify-between items-center p-2 rounded bg-gray-50 dark:bg-gray-700">
+                    <div>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        {new Date(slot.date).toLocaleDateString('pl-PL', { weekday: 'short', day: 'numeric', month: 'short' })}
+                      </span>
+                      <span className="ml-2 font-medium text-gray-900 dark:text-white">{slot.time}</span>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      slot.available 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                        : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                    }`}>
+                      {slot.available ? 'Dostępny' : 'Zajęty'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
           
-          {/* Prawa kolumna - usługi */}
-          <div className="lg:col-span-2">
+          {/* Prawa kolumna - usługi, galeria i podobne warsztaty */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Galeria */}
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm">
+              <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white flex items-center">
+                <Image className="w-5 h-5 mr-2 text-gray-500" />
+                Galeria
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {galleryImages.map((image, index) => (
+                  <div key={index} className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden">
+                    <div className="w-full h-full flex items-center justify-center text-gray-500 dark:text-gray-400">
+                      <span className="text-sm">Zdjęcie {index + 1}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Usługi */}
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
@@ -259,7 +388,7 @@ export default function WorkshopDetailsPage() {
       </div>
 
       {isBookingModalOpen && selectedService && (
-        <EnhancedBookingModal
+        <BookingModal
           isOpen={isBookingModalOpen}
           onClose={() => setIsBookingModalOpen(false)}
           workshopId={id}

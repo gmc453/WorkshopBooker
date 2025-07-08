@@ -25,7 +25,32 @@ export interface BookingFlowState {
   formData: BookingFormData;
   isProcessing: boolean;
   error: string | null;
+  showRetry: boolean;
+  retryCount: number;
 }
+
+// Helper function to convert technical errors to user-friendly messages
+const getUserFriendlyError = (error: any): string => {
+  if (error.response?.status === 409) {
+    return 'Ten termin został już zarezerwowany. Wybierz inny termin.';
+  }
+  if (error.response?.status === 400) {
+    return 'Nieprawidłowe dane rezerwacji. Sprawdź wprowadzone informacje.';
+  }
+  if (error.response?.status === 404) {
+    return 'Usługa lub termin nie został znaleziony.';
+  }
+  if (error.response?.status >= 500) {
+    return 'Problem z serwerem. Spróbuj ponownie za chwilę.';
+  }
+  if (error.code === 'NETWORK_ERROR' || error.message?.includes('Network Error')) {
+    return 'Problem z połączeniem internetowym. Sprawdź swoje połączenie.';
+  }
+  if (error.message?.includes('timeout')) {
+    return 'Żądanie przekroczyło limit czasu. Spróbuj ponownie.';
+  }
+  return 'Wystąpił nieoczekiwany błąd. Spróbuj ponownie lub skontaktuj się z warsztatem.';
+};
 
 export const useBookingFlow = (workshopId: string, serviceId: string) => {
   const queryClient = useQueryClient();
@@ -41,7 +66,9 @@ export const useBookingFlow = (workshopId: string, serviceId: string) => {
       notes: ''
     },
     isProcessing: false,
-    error: null
+    error: null,
+    showRetry: false,
+    retryCount: 0
   });
 
   // API queries
@@ -86,6 +113,8 @@ export const useBookingFlow = (workshopId: string, serviceId: string) => {
       });
       return response.data;
     },
+    retry: 3,
+    retryDelay: 1000,
     onSuccess: () => {
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['available-slots', workshopId, serviceId] });
@@ -93,13 +122,22 @@ export const useBookingFlow = (workshopId: string, serviceId: string) => {
       queryClient.invalidateQueries({ queryKey: ['quick-slots', workshopId, serviceId] });
       
       // Move to confirmation step
-      setState(prev => ({ ...prev, step: 'confirmation', isProcessing: false }));
+      setState(prev => ({ 
+        ...prev, 
+        step: 'confirmation', 
+        isProcessing: false,
+        showRetry: false,
+        retryCount: 0
+      }));
     },
     onError: (error: any) => {
+      const userFriendlyError = getUserFriendlyError(error);
       setState(prev => ({ 
         ...prev, 
         isProcessing: false, 
-        error: error.response?.data?.message || 'Wystąpił błąd podczas tworzenia rezerwacji'
+        error: userFriendlyError,
+        showRetry: true,
+        retryCount: prev.retryCount + 1
       }));
     }
   });
@@ -157,18 +195,35 @@ export const useBookingFlow = (workshopId: string, serviceId: string) => {
         notes: ''
       },
       isProcessing: false,
-      error: null
+      error: null,
+      showRetry: false,
+      retryCount: 0
     });
   }, []);
 
   const goBack = useCallback(() => {
     setState(prev => {
       if (prev.step === 'form') {
-        return { ...prev, step: 'calendar', selectedSlot: null, error: null };
+        return { ...prev, step: 'calendar', selectedSlot: null, error: null, showRetry: false };
       }
       return prev;
     });
   }, []);
+
+  const retryBooking = useCallback(async () => {
+    if (!state.selectedSlot) return;
+    
+    setState(prev => ({ ...prev, isProcessing: true, error: null, showRetry: false }));
+    
+    try {
+      await bookingMutation.mutateAsync({
+        slotId: state.selectedSlot.id,
+        formData: state.formData
+      });
+    } catch (error) {
+      // Error handling is done in mutation
+    }
+  }, [state.selectedSlot, state.formData, bookingMutation]);
 
   // Computed values
   const groupedSlots = useMemo(() => {
@@ -211,6 +266,7 @@ export const useBookingFlow = (workshopId: string, serviceId: string) => {
     updateFormData,
     submitBooking,
     resetFlow,
-    goBack
+    goBack,
+    retryBooking
   };
 }; 

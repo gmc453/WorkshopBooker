@@ -2,6 +2,7 @@ import type { FC } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
+import NotificationBell from './NotificationBell'
 
 const Header: FC = () => {
   const { logout } = useAuth()
@@ -30,8 +31,9 @@ const Header: FC = () => {
             <h1 className="text-xl font-bold text-gray-800 dark:text-white">Panel administracyjny</h1>
           </div>
           
-          {/* Desktop logout button */}
-          <div className="hidden md:block">
+          {/* Desktop actions */}
+          <div className="hidden md:flex items-center space-x-4">
+            <NotificationBell />
             <button
               onClick={logout}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-danger hover:bg-danger-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-danger transition-colors"

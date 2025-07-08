@@ -1,7 +1,7 @@
 "use client";
 
-import React from 'react';
-import { CheckCircle, Calendar, Clock, Mail, ArrowRight, Home } from 'lucide-react';
+import React, { useState } from 'react';
+import { CheckCircle, Calendar, Clock, Mail, ArrowRight, Home, Download, Printer, Star, Share2, Plus } from 'lucide-react';
 import { Slot, BookingFormData } from '../../../hooks/useBookingFlow';
 
 interface ConfirmationViewProps {
@@ -17,6 +17,12 @@ export const ConfirmationView: React.FC<ConfirmationViewProps> = ({
   onReset,
   onGoHome
 }) => {
+  const [rating, setRating] = useState<number>(0);
+  const [showRating, setShowRating] = useState(false);
+
+  // Generate booking reference number
+  const bookingReference = `BK-${Date.now().toString().slice(-8)}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+
   const formatTime = (dateString: string) => {
     return new Date(dateString).toLocaleTimeString('pl-PL', {
       hour: '2-digit',
@@ -33,25 +39,116 @@ export const ConfirmationView: React.FC<ConfirmationViewProps> = ({
     });
   };
 
+  const formatDateForICS = (dateString: string) => {
+    return new Date(dateString).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  };
+
+  const downloadCalendar = () => {
+    const startDate = formatDateForICS(selectedSlot.startTime);
+    const endDate = formatDateForICS(selectedSlot.endTime);
+    
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//WorkshopBooker//Booking//PL',
+      'BEGIN:VEVENT',
+      `UID:${bookingReference}@workshopbooker.com`,
+      `DTSTART:${startDate}`,
+      `DTEND:${endDate}`,
+      `SUMMARY:Rezerwacja warsztatu - ${formData.customerName}`,
+      `DESCRIPTION:Rezerwacja warsztatu dla ${formData.customerName}. Email: ${formData.customerEmail}`,
+      'STATUS:CONFIRMED',
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\r\n');
+
+    const blob = new Blob([icsContent], { type: 'text/calendar' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `rezerwacja-${bookingReference}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const printConfirmation = () => {
+    window.print();
+  };
+
+  const shareBooking = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Moja rezerwacja warsztatu',
+        text: `Zarezerwowałem termin w warsztacie na ${formatDate(selectedSlot.startTime)} o ${formatTime(selectedSlot.startTime)}`,
+        url: window.location.href
+      });
+    } else {
+      // Fallback - copy to clipboard
+      navigator.clipboard.writeText(`Moja rezerwacja warsztatu: ${formatDate(selectedSlot.startTime)} o ${formatTime(selectedSlot.startTime)}`);
+      alert('Link skopiowany do schowka!');
+    }
+  };
+
+  const handleRating = (stars: number) => {
+    setRating(stars);
+    setShowRating(false);
+    // Tutaj można dodać API call do zapisania oceny
+    console.log(`Ocena warsztatu: ${stars} gwiazdek`);
+  };
+
   return (
     <div className="text-center space-y-6">
       {/* Success Icon */}
       <div className="flex justify-center">
-        <div className="bg-green-100 rounded-full p-4">
-          <CheckCircle className="h-12 w-12 text-green-600" />
+        <div className="bg-gradient-to-r from-green-400 to-green-600 rounded-full p-6 shadow-lg">
+          <CheckCircle className="h-16 w-16 text-white" />
         </div>
       </div>
 
       {/* Success Message */}
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold text-gray-900">Rezerwacja potwierdzona!</h2>
-        <p className="text-gray-600">
+        <h2 className="text-3xl font-bold text-gray-900">Rezerwacja potwierdzona!</h2>
+        <p className="text-gray-600 text-lg">
           Twoja rezerwacja została pomyślnie utworzona. Otrzymasz email z potwierdzeniem.
         </p>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 inline-block">
+          <p className="text-sm font-medium text-blue-800">
+            Numer rezerwacji: <span className="font-mono text-blue-900">{bookingReference}</span>
+          </p>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="flex flex-wrap justify-center gap-3">
+        <button
+          onClick={downloadCalendar}
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+        >
+          <Download className="h-4 w-4" />
+          <span>Dodaj do kalendarza</span>
+        </button>
+        
+        <button
+          onClick={printConfirmation}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+        >
+          <Printer className="h-4 w-4" />
+          <span>Drukuj potwierdzenie</span>
+        </button>
+        
+        <button
+          onClick={shareBooking}
+          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+        >
+          <Share2 className="h-4 w-4" />
+          <span>Udostępnij</span>
+        </button>
       </div>
 
       {/* Booking Details */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 max-w-md mx-auto">
+      <div className="bg-white border border-gray-200 rounded-lg p-6 max-w-md mx-auto shadow-sm">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Szczegóły rezerwacji</h3>
         
         <div className="space-y-4 text-left">
@@ -101,6 +198,27 @@ export const ConfirmationView: React.FC<ConfirmationViewProps> = ({
         </div>
       </div>
 
+      {/* Rating Prompt */}
+      {!showRating && rating === 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-md mx-auto">
+          <h4 className="font-medium text-yellow-900 mb-2">Oceń warsztat</h4>
+          <p className="text-sm text-yellow-800 mb-3">
+            Jak oceniasz swoje doświadczenie z rezerwacją?
+          </p>
+          <div className="flex justify-center space-x-1">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                onClick={() => handleRating(star)}
+                className="text-yellow-400 hover:text-yellow-500 transition-colors"
+              >
+                <Star className="h-6 w-6" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Next Steps */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
         <h4 className="font-medium text-blue-900 mb-2">Co dalej?</h4>
@@ -116,9 +234,9 @@ export const ConfirmationView: React.FC<ConfirmationViewProps> = ({
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <button
           onClick={onReset}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 shadow-lg"
         >
-          <ArrowRight className="h-4 w-4" />
+          <Plus className="h-4 w-4" />
           <span>Nowa rezerwacja</span>
         </button>
         

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Star, Clock, Calendar } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Star, Clock, Calendar, Download, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import jsPDF from 'jspdf';
 
 interface AnalyticsData {
   workshopId: string;
@@ -85,6 +86,115 @@ export default function AnalyticsPage() {
     return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
   };
 
+  const exportToCSV = () => {
+    if (!analytics) return;
+
+    const csvData = [
+      ['Raport analityczny', analytics.workshopName, `Okres: ${timeRange} dni`],
+      [''],
+      ['KPI', 'Wartość', 'Wzrost'],
+      ['Przychody', formatCurrency(analytics.monthlyRevenue), formatPercentage(analytics.revenueGrowth)],
+      ['Rezerwacje', analytics.monthlyBookings.toString(), formatPercentage(analytics.bookingsGrowth)],
+      ['Średnia ocena', analytics.averageRating.toFixed(1), `${analytics.totalReviews} recenzji`],
+      ['Średni czas usługi', `${analytics.averageServiceTime.toFixed(1)}h`, 'na rezerwację'],
+      [''],
+      ['Popularne usługi', 'Rezerwacje', 'Przychody', 'Procent', 'Średnia ocena'],
+      ...analytics.serviceDistribution.map(service => [
+        service.serviceName,
+        service.bookingCount.toString(),
+        formatCurrency(service.totalRevenue),
+        `${service.percentage.toFixed(1)}%`,
+        service.averageRating.toFixed(1)
+      ]),
+      [''],
+      ['Popularne godziny', 'Rezerwacje', 'Wykorzystanie'],
+      ...analytics.popularTimeSlots.map(slot => [
+        slot.timeSlot,
+        slot.bookingCount.toString(),
+        `${slot.utilizationRate.toFixed(1)}%`
+      ]),
+      [''],
+      ['Trend przychodów (ostatnie 7 dni)', 'Data', 'Przychody', 'Rezerwacje'],
+      ...analytics.revenueOverTime.slice(-7).map(point => [
+        new Date(point.date).toLocaleDateString('pl-PL'),
+        formatCurrency(point.revenue),
+        point.bookings.toString()
+      ])
+    ];
+
+    const csvContent = csvData.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `raport-${analytics.workshopName}-${timeRange}dni.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportToPDF = () => {
+    if (!analytics) return;
+
+    const doc = new jsPDF();
+    let yPos = 20;
+
+    // Header
+    doc.setFontSize(20);
+    doc.text('Raport Analityczny', 20, yPos);
+    yPos += 10;
+    
+    doc.setFontSize(12);
+    doc.text(`${analytics.workshopName}`, 20, yPos);
+    yPos += 8;
+    
+    doc.setFontSize(10);
+    doc.text(`Okres: ${timeRange} dni`, 20, yPos);
+    yPos += 15;
+
+    // KPI Section
+    doc.setFontSize(14);
+    doc.text('Kluczowe wskaźniki (KPI)', 20, yPos);
+    yPos += 10;
+
+    doc.setFontSize(10);
+    doc.text(`Przychody: ${formatCurrency(analytics.monthlyRevenue)} (${formatPercentage(analytics.revenueGrowth)})`, 20, yPos);
+    yPos += 6;
+    doc.text(`Rezerwacje: ${analytics.monthlyBookings} (${formatPercentage(analytics.bookingsGrowth)})`, 20, yPos);
+    yPos += 6;
+    doc.text(`Średnia ocena: ${analytics.averageRating.toFixed(1)} (${analytics.totalReviews} recenzji)`, 20, yPos);
+    yPos += 6;
+    doc.text(`Średni czas usługi: ${analytics.averageServiceTime.toFixed(1)}h`, 20, yPos);
+    yPos += 15;
+
+    // Popular Services
+    doc.setFontSize(14);
+    doc.text('Popularne usługi', 20, yPos);
+    yPos += 10;
+
+    doc.setFontSize(10);
+    analytics.serviceDistribution.slice(0, 5).forEach(service => {
+      doc.text(`${service.serviceName}: ${service.bookingCount} rezerwacji, ${formatCurrency(service.totalRevenue)}`, 20, yPos);
+      yPos += 6;
+    });
+    yPos += 10;
+
+    // Popular Time Slots
+    doc.setFontSize(14);
+    doc.text('Popularne godziny', 20, yPos);
+    yPos += 10;
+
+    doc.setFontSize(10);
+    analytics.popularTimeSlots.slice(0, 5).forEach(slot => {
+      doc.text(`${slot.timeSlot}: ${slot.bookingCount} rezerwacji, ${slot.utilizationRate.toFixed(1)}% wykorzystanie`, 20, yPos);
+      yPos += 6;
+    });
+
+    // Save PDF
+    doc.save(`raport-${analytics.workshopName}-${timeRange}dni.pdf`);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -128,19 +238,38 @@ export default function AnalyticsPage() {
               </div>
             </div>
             
-            {/* Time Range Selector */}
-            <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700">Okres:</label>
-              <select 
-                value={timeRange} 
-                onChange={(e) => setTimeRange(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="7">7 dni</option>
-                <option value="30">30 dni</option>
-                <option value="90">90 dni</option>
-                <option value="365">1 rok</option>
-              </select>
+            {/* Time Range Selector and Export Buttons */}
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium text-gray-700">Okres:</label>
+                <select 
+                  value={timeRange} 
+                  onChange={(e) => setTimeRange(e.target.value)}
+                  className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="7">7 dni</option>
+                  <option value="30">30 dni</option>
+                  <option value="90">90 dni</option>
+                  <option value="365">1 rok</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={exportToCSV}
+                  className="flex items-center space-x-2 px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>CSV</span>
+                </button>
+                <button
+                  onClick={exportToPDF}
+                  className="flex items-center space-x-2 px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
+                >
+                  <FileText className="h-4 w-4" />
+                  <span>PDF</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

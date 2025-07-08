@@ -2,13 +2,14 @@ import { useState } from 'react'
 import Header from '../../components/Header'
 import WorkshopCards from './components/WorkshopCards'
 import CalendarView from './components/CalendarView'
+import ListView from './components/ListView'
 import AddSlotModal from './components/AddSlotModal'
 import FeedbackToast from './components/FeedbackToast'
 import { useMyWorkshops } from '../../hooks/useMyWorkshops'
 import { useWorkshopSelection } from './hooks/useWorkshopSelection'
 import { useSlotManagement } from './hooks/useSlotManagement'
 import { useWorkshopSlots } from '../../hooks/useWorkshopSlots'
-import { Calendar, Loader2 } from 'lucide-react'
+import { Calendar, Loader2, Grid, List } from 'lucide-react'
 
 
 export default function SlotsPage() {
@@ -20,6 +21,7 @@ export default function SlotsPage() {
   const [showModal, setShowModal] = useState(false)
   const [selectedSlots, setSelectedSlots] = useState<Set<string>>(new Set())
   const [initialModalDate, setInitialModalDate] = useState<Date | undefined>()
+  const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar')
   
   // Business logic
   const slotManagement = useSlotManagement(selectedWorkshopId)
@@ -43,6 +45,11 @@ export default function SlotsPage() {
   const handleDateClick = (date: Date) => {
     setInitialModalDate(date)
     setShowModal(true)
+  }
+
+  const handleEditSlot = (slotId: string) => {
+    // TODO: Implement edit slot functionality
+    console.log('Edit slot:', slotId)
   }
 
   if (isLoadingWorkshops) {
@@ -78,17 +85,61 @@ export default function SlotsPage() {
         />
         
         {selectedWorkshopId ? (
-          <CalendarView
-            workshopId={selectedWorkshopId}
-            workshops={workshops}
-            slots={slots}
-            isLoading={isLoadingSlots}
-            selectedSlots={selectedSlots}
-            onSelectSlot={setSelectedSlots}
-            onBulkDelete={handleBulkDelete}
-            onAddSlot={() => setShowModal(true)}
-            onDateClick={handleDateClick}
-          />
+          <>
+            {/* View Mode Toggle */}
+            <div className="mb-4 flex justify-center">
+              <div className="flex border border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm">
+                <button
+                  onClick={() => setViewMode('calendar')}
+                  className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium transition-colors ${
+                    viewMode === 'calendar'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <Grid className="h-4 w-4" />
+                  <span>Kalendarz</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium transition-colors ${
+                    viewMode === 'list'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <List className="h-4 w-4" />
+                  <span>Lista</span>
+                </button>
+              </div>
+            </div>
+
+            {viewMode === 'calendar' ? (
+              <CalendarView
+                workshopId={selectedWorkshopId}
+                workshops={workshops}
+                slots={slots}
+                isLoading={isLoadingSlots}
+                selectedSlots={selectedSlots}
+                onSelectSlot={setSelectedSlots}
+                onBulkDelete={handleBulkDelete}
+                onAddSlot={() => setShowModal(true)}
+                onDateClick={handleDateClick}
+              />
+            ) : (
+              <ListView
+                workshopId={selectedWorkshopId}
+                workshops={workshops}
+                slots={slots}
+                isLoading={isLoadingSlots}
+                selectedSlots={selectedSlots}
+                onSelectSlot={setSelectedSlots}
+                onBulkDelete={handleBulkDelete}
+                onAddSlot={() => setShowModal(true)}
+                onEditSlot={handleEditSlot}
+              />
+            )}
+          </>
         ) : (
           <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
             <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />

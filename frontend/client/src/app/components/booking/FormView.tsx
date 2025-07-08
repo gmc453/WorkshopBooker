@@ -1,7 +1,7 @@
 "use client";
 
-import React from 'react';
-import { ArrowLeft, User, Mail, Phone, FileText, Calendar, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, User, Mail, Phone, FileText, Calendar, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import { Slot, BookingFormData } from '../../../hooks/useBookingFlow';
 
 interface FormViewProps {
@@ -15,6 +15,12 @@ interface FormViewProps {
   onGoBack: () => void;
 }
 
+interface FieldErrors {
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+}
+
 export const FormView: React.FC<FormViewProps> = ({
   selectedSlot,
   formData,
@@ -25,6 +31,73 @@ export const FormView: React.FC<FormViewProps> = ({
   onSubmit,
   onGoBack
 }) => {
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const validateEmail = (email: string): boolean => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
+  const validatePhone = (phone: string): boolean => {
+    if (!phone) return true; // Phone is optional
+    const re = /^[+]?[0-9]{9,15}$/;
+    return re.test(phone.replace(/\s/g, ''));
+  };
+
+  const validateName = (name: string): boolean => {
+    return name.trim().length >= 2;
+  };
+
+  const validateField = (field: keyof BookingFormData, value: string) => {
+    const newErrors = { ...errors };
+
+    switch (field) {
+      case 'customerName':
+        if (!validateName(value)) {
+          newErrors.customerName = 'Imię i nazwisko musi mieć co najmniej 2 znaki';
+        } else {
+          delete newErrors.customerName;
+        }
+        break;
+      case 'customerEmail':
+        if (!validateEmail(value)) {
+          newErrors.customerEmail = 'Wprowadź poprawny adres email';
+        } else {
+          delete newErrors.customerEmail;
+        }
+        break;
+      case 'customerPhone':
+        if (!validatePhone(value)) {
+          newErrors.customerPhone = 'Wprowadź poprawny numer telefonu';
+        } else {
+          delete newErrors.customerPhone;
+        }
+        break;
+    }
+
+    setErrors(newErrors);
+  };
+
+  const handleFieldChange = (field: keyof BookingFormData, value: string) => {
+    onUpdateFormData(field, value);
+    if (touched[field]) {
+      validateField(field, value);
+    }
+  };
+
+  const handleFieldBlur = (field: keyof BookingFormData) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    validateField(field, formData[field] || '');
+  };
+
+  const getFieldStatus = (field: keyof BookingFormData) => {
+    if (!touched[field]) return 'default';
+    if (field !== 'notes' && errors[field as keyof FieldErrors]) return 'error';
+    if (formData[field] && field !== 'notes' && !errors[field as keyof FieldErrors]) return 'success';
+    return 'default';
+  };
+
   const formatTime = (dateString: string) => {
     return new Date(dateString).toLocaleTimeString('pl-PL', {
       hour: '2-digit',
@@ -74,9 +147,7 @@ export const FormView: React.FC<FormViewProps> = ({
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
+              <AlertCircle className="h-5 w-5 text-red-400" />
             </div>
             <div className="ml-3">
               <p className="text-sm text-red-800">{error}</p>
@@ -103,12 +174,32 @@ export const FormView: React.FC<FormViewProps> = ({
                 type="text"
                 id="customerName"
                 value={formData.customerName}
-                onChange={(e) => onUpdateFormData('customerName', e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                onChange={(e) => handleFieldChange('customerName', e.target.value)}
+                onBlur={() => handleFieldBlur('customerName')}
+                className={`block w-full pl-10 pr-10 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                  getFieldStatus('customerName') === 'error' 
+                    ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
+                    : getFieldStatus('customerName') === 'success'
+                    ? 'border-green-300 focus:border-green-500 focus:ring-green-500'
+                    : 'border-gray-300'
+                }`}
                 placeholder="Wprowadź imię i nazwisko"
                 required
               />
+              {getFieldStatus('customerName') === 'success' && (
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                </div>
+              )}
+              {getFieldStatus('customerName') === 'error' && (
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <AlertCircle className="h-5 w-5 text-red-500" />
+                </div>
+              )}
             </div>
+            {errors.customerName && (
+              <p className="mt-1 text-sm text-red-600">{errors.customerName}</p>
+            )}
           </div>
 
           {/* Customer Email */}
@@ -124,12 +215,32 @@ export const FormView: React.FC<FormViewProps> = ({
                 type="email"
                 id="customerEmail"
                 value={formData.customerEmail}
-                onChange={(e) => onUpdateFormData('customerEmail', e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                onChange={(e) => handleFieldChange('customerEmail', e.target.value)}
+                onBlur={() => handleFieldBlur('customerEmail')}
+                className={`block w-full pl-10 pr-10 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                  getFieldStatus('customerEmail') === 'error' 
+                    ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
+                    : getFieldStatus('customerEmail') === 'success'
+                    ? 'border-green-300 focus:border-green-500 focus:ring-green-500'
+                    : 'border-gray-300'
+                }`}
                 placeholder="Wprowadź adres email"
                 required
               />
+              {getFieldStatus('customerEmail') === 'success' && (
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                </div>
+              )}
+              {getFieldStatus('customerEmail') === 'error' && (
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <AlertCircle className="h-5 w-5 text-red-500" />
+                </div>
+              )}
             </div>
+            {errors.customerEmail && (
+              <p className="mt-1 text-sm text-red-600">{errors.customerEmail}</p>
+            )}
           </div>
 
           {/* Customer Phone */}
@@ -145,11 +256,31 @@ export const FormView: React.FC<FormViewProps> = ({
                 type="tel"
                 id="customerPhone"
                 value={formData.customerPhone}
-                onChange={(e) => onUpdateFormData('customerPhone', e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                onChange={(e) => handleFieldChange('customerPhone', e.target.value)}
+                onBlur={() => handleFieldBlur('customerPhone')}
+                className={`block w-full pl-10 pr-10 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                  getFieldStatus('customerPhone') === 'error' 
+                    ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
+                    : getFieldStatus('customerPhone') === 'success'
+                    ? 'border-green-300 focus:border-green-500 focus:ring-green-500'
+                    : 'border-gray-300'
+                }`}
                 placeholder="Wprowadź numer telefonu (opcjonalnie)"
               />
+              {getFieldStatus('customerPhone') === 'success' && (
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                </div>
+              )}
+              {getFieldStatus('customerPhone') === 'error' && (
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <AlertCircle className="h-5 w-5 text-red-500" />
+                </div>
+              )}
             </div>
+            {errors.customerPhone && (
+              <p className="mt-1 text-sm text-red-600">{errors.customerPhone}</p>
+            )}
           </div>
 
           {/* Notes */}
@@ -198,7 +329,6 @@ export const FormView: React.FC<FormViewProps> = ({
         {/* Form validation info */}
         <div className="mt-4 text-sm text-gray-600">
           <p>* Pola wymagane</p>
-          <p>Po potwierdzeniu rezerwacji otrzymasz email z potwierdzeniem.</p>
         </div>
       </div>
     </div>

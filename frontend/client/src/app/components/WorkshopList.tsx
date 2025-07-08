@@ -5,18 +5,27 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { Workshop } from "../types/workshop";
 import Link from "next/link";
-import { Search, MapPin, ArrowRight, Briefcase, Star, Clock, Calendar, X, AlertCircle } from 'lucide-react';
+import { Search, MapPin, ArrowRight, Briefcase, Star, Clock, Calendar, X, AlertCircle, Filter, SlidersHorizontal } from 'lucide-react';
 
 // ZMIEŃ PORT NA TEN, NA KTÓRYM DZIAŁA TWOJE API .NET!
 const API_URL = "http://localhost:5197/api/workshops"; 
 
-export default function WorkshopList() {
+interface WorkshopListProps {
+    initialSearchTerm?: string;
+}
+
+export default function WorkshopList({ initialSearchTerm = '' }: WorkshopListProps) {
     // Stany komponentu: do przechowywania danych, statusu ładowania i ewentualnych błędów.
     const [workshops, setWorkshops] = useState<Workshop[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
     const [filterRating, setFilterRating] = useState<number | null>(null);
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+    const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
+    const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const [sortBy, setSortBy] = useState<'name' | 'rating' | 'price' | 'distance'>('name');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
     useEffect(() => {
         const fetchWorkshops = async () => {
@@ -45,13 +54,55 @@ export default function WorkshopList() {
         setSearchTerm(e.target.value);
     };
     
-    // Filtrowanie warsztatów na podstawie oceny
-    const filteredWorkshops = workshops.filter(workshop => {
-        if (filterRating && workshop.rating) {
-            return workshop.rating >= filterRating;
-        }
-        return true;
-    });
+    // Zaawansowane filtrowanie i sortowanie warsztatów
+    const filteredAndSortedWorkshops = workshops
+        .filter(workshop => {
+            // Filtr oceny
+            if (filterRating && workshop.rating) {
+                if (workshop.rating < filterRating) return false;
+            }
+            
+            // Filtr kategorii (mock - w rzeczywistej aplikacji warsztaty miałyby kategorie)
+            if (selectedCategory !== 'all') {
+                // Tutaj byłaby logika filtrowania po kategorii
+                return true; // Na razie przepuszczamy wszystkie
+            }
+            
+            // Filtr ceny (na podstawie najniższej ceny usługi)
+            if (workshop.services && workshop.services.length > 0) {
+                const minPrice = Math.min(...workshop.services.map(s => s.price));
+                if (minPrice < priceRange[0] || minPrice > priceRange[1]) {
+                    return false;
+                }
+            }
+            
+            return true;
+        })
+        .sort((a, b) => {
+            let comparison = 0;
+            
+            switch (sortBy) {
+                case 'name':
+                    comparison = a.name.localeCompare(b.name);
+                    break;
+                case 'rating':
+                    const ratingA = a.rating || 0;
+                    const ratingB = b.rating || 0;
+                    comparison = ratingA - ratingB;
+                    break;
+                case 'price':
+                    const priceA = a.services && a.services.length > 0 ? Math.min(...a.services.map(s => s.price)) : 0;
+                    const priceB = b.services && b.services.length > 0 ? Math.min(...b.services.map(s => s.price)) : 0;
+                    comparison = priceA - priceB;
+                    break;
+                case 'distance':
+                    // Mock distance - w rzeczywistej aplikacji byłaby obliczana na podstawie lokalizacji
+                    comparison = 0;
+                    break;
+            }
+            
+            return sortOrder === 'asc' ? comparison : -comparison;
+        });
     
     // Pomocnicza funkcja do generowania gwiazdek oceny
     const renderRating = (rating: number | undefined) => {
@@ -94,25 +145,132 @@ export default function WorkshopList() {
                     )}
                 </div>
                 
-                {/* Filtry */}
-                <div className="mt-4 flex flex-wrap gap-2">
-                    <button 
-                        onClick={() => setFilterRating(null)}
-                        className={`px-3 py-1.5 text-sm rounded-full border ${!filterRating ? 'bg-blue-100 border-blue-300 text-blue-800' : 'bg-white border-gray-300 text-gray-700'}`}
-                    >
-                        Wszystkie
-                    </button>
-                    {[4, 3, 2].map(rating => (
+                {/* Podstawowe filtry */}
+                <div className="mt-4 flex flex-wrap items-center gap-4">
+                    <div className="flex flex-wrap gap-2">
                         <button 
-                            key={rating}
-                            onClick={() => setFilterRating(rating)}
-                            className={`px-3 py-1.5 text-sm rounded-full border flex items-center ${filterRating === rating ? 'bg-blue-100 border-blue-300 text-blue-800' : 'bg-white border-gray-300 text-gray-700'}`}
+                            onClick={() => setFilterRating(null)}
+                            className={`px-3 py-1.5 text-sm rounded-full border ${!filterRating ? 'bg-blue-100 border-blue-300 text-blue-800' : 'bg-white border-gray-300 text-gray-700'}`}
                         >
-                            <span>Od {rating}+ </span>
-                            <Star className="w-3 h-3 ml-1 fill-current" />
+                            Wszystkie
                         </button>
-                    ))}
+                        {[4, 3, 2].map(rating => (
+                            <button 
+                                key={rating}
+                                onClick={() => setFilterRating(rating)}
+                                className={`px-3 py-1.5 text-sm rounded-full border flex items-center ${filterRating === rating ? 'bg-blue-100 border-blue-300 text-blue-800' : 'bg-white border-gray-300 text-gray-700'}`}
+                            >
+                                <span>Od {rating}+ </span>
+                                <Star className="w-3 h-3 ml-1 fill-current" />
+                            </button>
+                        ))}
+                    </div>
+                    
+                    <button
+                        onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 rounded-full hover:bg-gray-50 transition-colors"
+                    >
+                        <SlidersHorizontal className="w-4 h-4" />
+                        <span>Zaawansowane filtry</span>
+                    </button>
                 </div>
+
+                {/* Zaawansowane filtry */}
+                {showAdvancedFilters && (
+                    <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {/* Zakres cenowy */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Zakres cenowy (zł)
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="number"
+                                        value={priceRange[0]}
+                                        onChange={(e) => setPriceRange([parseInt(e.target.value) || 0, priceRange[1]])}
+                                        className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                        placeholder="Od"
+                                    />
+                                    <span className="text-gray-500">-</span>
+                                    <input
+                                        type="number"
+                                        value={priceRange[1]}
+                                        onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value) || 1000])}
+                                        className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                        placeholder="Do"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Kategoria */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Kategoria
+                                </label>
+                                <select
+                                    value={selectedCategory}
+                                    onChange={(e) => setSelectedCategory(e.target.value)}
+                                    className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value="all">Wszystkie kategorie</option>
+                                    <option value="mechanic">Mechanika</option>
+                                    <option value="electric">Elektryka</option>
+                                    <option value="bodywork">Blacharstwo</option>
+                                    <option value="diagnostic">Diagnostyka</option>
+                                </select>
+                            </div>
+
+                            {/* Sortowanie */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Sortuj według
+                                </label>
+                                <select
+                                    value={sortBy}
+                                    onChange={(e) => setSortBy(e.target.value as 'name' | 'rating' | 'price' | 'distance')}
+                                    className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value="name">Nazwa</option>
+                                    <option value="rating">Ocena</option>
+                                    <option value="price">Cena</option>
+                                    <option value="distance">Odległość</option>
+                                </select>
+                            </div>
+
+                            {/* Kolejność sortowania */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Kolejność
+                                </label>
+                                <select
+                                    value={sortOrder}
+                                    onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+                                    className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value="asc">Rosnąco</option>
+                                    <option value="desc">Malejąco</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Przycisk wyczyszczenia filtrów */}
+                        <div className="mt-4 flex justify-end">
+                            <button
+                                onClick={() => {
+                                    setFilterRating(null);
+                                    setPriceRange([0, 1000]);
+                                    setSelectedCategory('all');
+                                    setSortBy('name');
+                                    setSortOrder('asc');
+                                }}
+                                className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                            >
+                                Wyczyść wszystkie filtry
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {loading ? (
@@ -129,9 +287,9 @@ export default function WorkshopList() {
                 </div>
             ) : (
                 <div>
-                    {filteredWorkshops.length > 0 ? (
+                    {filteredAndSortedWorkshops.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {filteredWorkshops.map((workshop) => (
+                            {filteredAndSortedWorkshops.map((workshop: Workshop) => (
                                 <Link href={`/workshops/${workshop.id}`} key={workshop.id} className="block group">
                                     <div className="h-full flex flex-col border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all bg-white dark:bg-gray-800/50 group-hover:border-blue-300 group-hover:translate-y-[-2px]">
                                         {/* Card Header - można dodać zdjęcie tła warsztatów w przyszłości */}

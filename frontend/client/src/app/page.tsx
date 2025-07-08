@@ -1,10 +1,21 @@
 "use client";
 
 // src/app/page.tsx
+import { useState } from "react";
 import WorkshopList from "./components/WorkshopList";
 import { Search, CalendarCheck, Clock, User, MapPin } from 'lucide-react';
 
 export default function Home() {
+  const [heroSearchTerm, setHeroSearchTerm] = useState('');
+
+  const handleHeroSearch = () => {
+    // Przewiń do sekcji warsztatów
+    const workshopsSection = document.getElementById('workshops-section');
+    if (workshopsSection) {
+      workshopsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <>
       {/* Hero Section */}
@@ -26,9 +37,15 @@ export default function Home() {
               <input 
                 type="text" 
                 placeholder="Wyszukaj warsztaty..."
+                value={heroSearchTerm}
+                onChange={(e) => setHeroSearchTerm(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleHeroSearch()}
                 className="w-full pl-12 py-4 pr-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
               />
-              <button className="absolute right-2 top-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors">
+              <button 
+                onClick={handleHeroSearch}
+                className="absolute right-2 top-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors"
+              >
                 Szukaj
               </button>
             </div>
@@ -88,11 +105,11 @@ export default function Home() {
       </section>
 
       {/* Workshops Section */}
-      <main className="container mx-auto px-4 md:px-8 py-12">
+      <main id="workshops-section" className="container mx-auto px-4 md:px-8 py-12">
         <h2 className="text-2xl md:text-3xl font-bold mb-8 text-gray-900 dark:text-white">
           Dostępne warsztaty
         </h2>
-        <WorkshopList />
+        <WorkshopList initialSearchTerm={heroSearchTerm} />
       </main>
     </>
   );

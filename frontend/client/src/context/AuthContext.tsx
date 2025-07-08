@@ -1,69 +1,116 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from 'react'
-import type { ReactNode } from 'react'
+import { createContext, useState, useContext, useEffect, type ReactNode } from 'react'
+import { jwtDecode } from 'jwt-decode'
 
-// Definiujemy typ dla kontekstu autentykacji
-type AuthContextType = {
+export type AuthContextType = {
   isAuthenticated: boolean
+  token: string | null
   login: (token: string) => void
   logout: () => void
+  isLoading: boolean
+  userId: string | null
+  userEmail: string | null
+  userRole: string | null
 }
 
-// Tworzymy kontekst z domyślnymi wartościami
-const AuthContext = createContext<AuthContextType>({
+export const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
+  token: null,
   login: () => {},
-  logout: () => {}
+  logout: () => {},
+  isLoading: true,
+  userId: null,
+  userEmail: null,
+  userRole: null
 })
 
-// Props dla AuthProvider
+interface JwtPayload {
+  nameid: string
+  email: string
+  role: string
+  exp: number
+}
+
 type AuthProviderProps = {
   children: ReactNode
 }
 
-// Komponent dostawcy kontekstu autentykacji
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [token, setToken] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [userRole, setUserRole] = useState<string | null>(null)
 
-  // Sprawdzamy, czy token istnieje w localStorage przy pierwszym załadowaniu
   useEffect(() => {
-    // W środowisku przeglądarki sprawdzamy localStorage
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('authToken')
-      if (token) {
-        setIsAuthenticated(true)
+    const storedToken = localStorage.getItem('authToken')
+    if (storedToken) {
+      try {
+        const decoded = jwtDecode<JwtPayload>(storedToken)
+        // Sprawdzenie czy token nie wygasł
+        if (decoded.exp * 1000 > Date.now()) {
+          setToken(storedToken)
+          setUserId(decoded.nameid)
+          setUserEmail(decoded.email)
+          setUserRole(decoded.role)
+        } else {
+          // Token wygasł, wyloguj
+          localStorage.removeItem('authToken')
+          setToken(null)
+          setUserId(null)
+          setUserEmail(null)
+          setUserRole(null)
+        }
+      } catch (error) {
+        // Błędny token, wyloguj
+        localStorage.removeItem('authToken')
+        setToken(null)
+        setUserId(null)
+        setUserEmail(null)
+        setUserRole(null)
       }
     }
+    setIsLoading(false)
   }, [])
 
-  // Funkcja logowania - zapisuje token i ustawia stan autentykacji
-  const login = (token: string) => {
-    localStorage.setItem('authToken', token)
-    setIsAuthenticated(true)
+  const login = (newToken: string) => {
+    try {
+      const decoded = jwtDecode<JwtPayload>(newToken)
+      localStorage.setItem('authToken', newToken)
+      setToken(newToken)
+      setUserId(decoded.nameid)
+      setUserEmail(decoded.email)
+      setUserRole(decoded.role)
+    } catch (error) {
+      console.error('Błąd dekodowania tokenu:', error)
+    }
   }
 
-  // Funkcja wylogowania - usuwa token i resetuje stan autentykacji
   const logout = () => {
     localStorage.removeItem('authToken')
-    setIsAuthenticated(false)
-  }
-
-  // Wartości przekazywane przez kontekst
-  const contextValue: AuthContextType = {
-    isAuthenticated,
-    login,
-    logout
+    setToken(null)
+    setUserId(null)
+    setUserEmail(null)
+    setUserRole(null)
   }
 
   return (
-    <AuthContext.Provider value={contextValue}>
+    <AuthContext.Provider value={{ 
+      isAuthenticated: !!token, 
+      token,
+      login,
+      logout,
+      isLoading,
+      userId,
+      userEmail,
+      userRole
+    }}>
       {children}
     </AuthContext.Provider>
   )
 }
 
-// Własny hook ułatwiający korzystanie z kontekstu
 export const useAuth = () => {
   const context = useContext(AuthContext)
   
