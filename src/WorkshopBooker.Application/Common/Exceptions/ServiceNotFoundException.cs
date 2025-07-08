@@ -1,5 +1,8 @@
 namespace WorkshopBooker.Application.Common.Exceptions;
 
+/// <summary>
+/// Wyjątek rzucany gdy usługa nie została znaleziona
+/// </summary>
 public class ServiceNotFoundException : Exception
 {
     public ServiceNotFoundException() : base("Usługa nie została znaleziona")

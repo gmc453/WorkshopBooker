@@ -1,6 +1,7 @@
 // src/WorkshopBooker.Api/Controllers/ServicesController.cs
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using WorkshopBooker.Application.Services.Commands.CreateService;
 using WorkshopBooker.Application.Services.Commands.UpdateService;
 using WorkshopBooker.Application.Services.Commands.DeleteService;
@@ -22,6 +23,7 @@ public class ServicesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize]
     [EnableRateLimiting("WritePolicy")]
     public async Task<IActionResult> Create(Guid workshopId, CreateServiceCommand command)
     {
@@ -47,6 +49,7 @@ public class ServicesController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize]
     [EnableRateLimiting("WritePolicy")]
     public async Task<IActionResult> Update(Guid workshopId, Guid id, UpdateServiceCommand command)
     {
@@ -61,6 +64,7 @@ public class ServicesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize]
     [EnableRateLimiting("WritePolicy")]
     public async Task<IActionResult> Delete(Guid workshopId, Guid id)
     {

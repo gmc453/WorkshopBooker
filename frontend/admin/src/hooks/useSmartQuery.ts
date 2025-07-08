@@ -202,14 +202,21 @@ export function useSmartQuery<T>(options: UseSmartQueryOptions<T>): UseSmartQuer
   // Cleanup przy odmontowaniu
   useEffect(() => {
     return () => {
+      // ✅ POPRAWKA: Bezpieczne cleanup z null check
       if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+        try {
+          abortControllerRef.current.abort();
+        } catch (error) {
+          console.warn('Error during abort controller cleanup:', error);
+        }
       }
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
       }
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
       }
     };
   }, []);

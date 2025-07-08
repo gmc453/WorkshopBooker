@@ -4,6 +4,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using WorkshopBooker.Application.Common.Interfaces;
+using WorkshopBooker.Application.Common.Exceptions;
 
 namespace WorkshopBooker.Application.Bookings.Commands.ConfirmBooking;
 
@@ -36,7 +37,7 @@ public class ConfirmBookingCommandHandler : IRequestHandler<ConfirmBookingComman
         var currentUserId = _currentUserProvider.UserId;
         if (currentUserId == null || booking.Service.Workshop.UserId != currentUserId)
         {
-            throw new UnauthorizedAccessException("Nie masz uprawnień do potwierdzenia tej rezerwacji.");
+            throw new WorkshopBooker.Application.Common.Exceptions.UnauthorizedAccessException("Nie masz uprawnień do potwierdzenia tej rezerwacji.");
         }
 
         // Wykonanie logiki biznesowej

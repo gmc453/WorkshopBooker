@@ -18,21 +18,25 @@ public class BookingValidator
     {
         var result = new BookingValidationResult();
 
-        var slot = await _context.AvailableSlots.FirstOrDefaultAsync(s => s.Id == request.SlotId && s.Status == SlotStatus.Available, cancellationToken);
+        var slot = await _context.AvailableSlots
+            .Include(s => s.Workshop)
+            .FirstOrDefaultAsync(s => s.Id == request.SlotId && s.Status == SlotStatus.Available, cancellationToken);
+
         if (slot == null)
         {
             result.AddError("Wybrany termin jest już niedostępny");
             return result;
         }
 
-        var workshop = await _context.Workshops.FirstOrDefaultAsync(w => w.Id == slot.WorkshopId && w.IsActive, cancellationToken);
-        if (workshop == null)
+        if (slot.Workshop == null || !slot.Workshop.IsActive)
         {
             result.AddError("Warsztat jest obecnie niedostępny");
             return result;
         }
 
-        var service = await _context.Services.FirstOrDefaultAsync(s => s.Id == request.ServiceId && s.IsActive, cancellationToken);
+        var service = await _context.Services
+            .FirstOrDefaultAsync(s => s.Id == request.ServiceId && s.IsActive, cancellationToken);
+
         if (service == null)
         {
             result.AddError("Wybrana usługa jest niedostępna");

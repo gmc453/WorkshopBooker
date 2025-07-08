@@ -1,8 +1,10 @@
 using WorkshopBooker.Application.Common.Interfaces;
 using WorkshopBooker.Application.Bookings.Dtos;
+using WorkshopBooker.Application.Common.Constants;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System.Threading;
 
 namespace WorkshopBooker.Infrastructure.Services;
 
@@ -50,7 +52,25 @@ public class NotificationService : INotificationService
         if (!string.IsNullOrEmpty(phoneNumber))
             tasks.Add(SendSmsAsync(phoneNumber, smsMessage));
 
-        await Task.WhenAll(tasks);
+        if (tasks.Count > 0)
+        {
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(TimeConstants.NotificationTimeoutSeconds));
+                await Task.WhenAll(tasks).WaitAsync(cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("Timeout podczas wysyłania powiadomień o rezerwacji");
+                throw new InvalidOperationException("Timeout podczas wysyłania powiadomień o rezerwacji");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Błąd podczas wysyłania powiadomień o rezerwacji");
+                throw;
+            }
+        }
+        
         await ScheduleReminders(email, phoneNumber, booking);
     }
 
@@ -66,7 +86,24 @@ public class NotificationService : INotificationService
         if (!string.IsNullOrEmpty(phoneNumber))
             tasks.Add(SendSmsAsync(phoneNumber, smsMessage));
 
-        await Task.WhenAll(tasks);
+        if (tasks.Count > 0)
+        {
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(TimeConstants.NotificationTimeoutSeconds));
+                await Task.WhenAll(tasks).WaitAsync(cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("Timeout podczas wysyłania przypomnień o rezerwacji");
+                throw new InvalidOperationException("Timeout podczas wysyłania przypomnień o rezerwacji");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Błąd podczas wysyłania przypomnień o rezerwacji");
+                throw;
+            }
+        }
     }
 
     public async Task SendBookingCancellationAsync(string email, string phoneNumber, BookingDto booking)
@@ -81,14 +118,29 @@ public class NotificationService : INotificationService
         if (!string.IsNullOrEmpty(phoneNumber))
             tasks.Add(SendSmsAsync(phoneNumber, smsMessage));
 
-        await Task.WhenAll(tasks);
+        if (tasks.Count > 0)
+        {
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(TimeConstants.NotificationTimeoutSeconds));
+                await Task.WhenAll(tasks).WaitAsync(cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("Timeout podczas wysyłania powiadomień o anulowaniu");
+                throw new InvalidOperationException("Timeout podczas wysyłania powiadomień o anulowaniu");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Błąd podczas wysyłania powiadomień o anulowaniu");
+                throw;
+            }
+        }
     }
 
     private async Task ScheduleReminders(string email, string phoneNumber, BookingDto booking)
     {
-        // Handle timezone conversion properly
-        // If DateTimeKind is Unspecified, we need to determine the intended timezone
-        // For database-stored times, we should treat Unspecified as UTC
+        // ✅ POPRAWKA: Spójne używanie UTC dla wszystkich operacji czasowych
         DateTime slotStartUtc;
         
         if (booking.SlotStartTime.Kind == DateTimeKind.Utc)
@@ -101,25 +153,38 @@ public class NotificationService : INotificationService
         }
         else // DateTimeKind.Unspecified
         {
-            // Assume the time is stored as UTC in the database
-            // If this assumption is wrong, the timezone should be handled at the database/entity level
+            // ✅ POPRAWKA: Traktuję Unspecified jako UTC dla spójności
             slotStartUtc = DateTime.SpecifyKind(booking.SlotStartTime, DateTimeKind.Utc);
         }
 
-        var reminder24 = slotStartUtc.AddHours(-24);
+        var reminder24 = slotStartUtc.AddHours(-TimeConstants.ReminderHoursBeforeSlot);
         if (reminder24 > DateTime.UtcNow)
         {
-            await _backgroundJobService.ScheduleAsync(
-                serviceProvider => SendBookingReminderViaServiceProvider(serviceProvider, email, phoneNumber, booking, 24),
-                new DateTimeOffset(reminder24, TimeSpan.Zero));
+            try
+            {
+                await _backgroundJobService.ScheduleAsync(
+                    serviceProvider => SendBookingReminderViaServiceProvider(serviceProvider, email, phoneNumber, booking, TimeConstants.ReminderHoursBeforeSlot),
+                    new DateTimeOffset(reminder24, TimeSpan.Zero));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Błąd podczas planowania przypomnienia {Hours}h dla rezerwacji {BookingId}", TimeConstants.ReminderHoursBeforeSlot, booking.Id);
+            }
         }
 
-        var reminder2 = slotStartUtc.AddHours(-2);
+        var reminder2 = slotStartUtc.AddHours(-TimeConstants.ShortReminderHoursBeforeSlot);
         if (reminder2 > DateTime.UtcNow)
         {
-            await _backgroundJobService.ScheduleAsync(
-                serviceProvider => SendBookingReminderViaServiceProvider(serviceProvider, email, phoneNumber, booking, 2),
-                new DateTimeOffset(reminder2, TimeSpan.Zero));
+            try
+            {
+                await _backgroundJobService.ScheduleAsync(
+                    serviceProvider => SendBookingReminderViaServiceProvider(serviceProvider, email, phoneNumber, booking, TimeConstants.ShortReminderHoursBeforeSlot),
+                    new DateTimeOffset(reminder2, TimeSpan.Zero));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Błąd podczas planowania przypomnienia {Hours}h dla rezerwacji {BookingId}", TimeConstants.ShortReminderHoursBeforeSlot, booking.Id);
+            }
         }
     }
 

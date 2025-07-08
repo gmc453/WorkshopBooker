@@ -2,6 +2,7 @@ using WorkshopBooker.Api.Extensions;
 using WorkshopBooker.Api.Middleware;
 using WorkshopBooker.Infrastructure;
 using System.Threading.RateLimiting;
+using WorkshopBooker.Application.Common.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -114,5 +115,15 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// ✅ POPRAWKA: Proper disposal dla BackgroundJobService
+app.Lifetime.ApplicationStopping.Register(() =>
+{
+    var backgroundJobService = app.Services.GetService<IBackgroundJobService>();
+    if (backgroundJobService is IDisposable disposable)
+    {
+        disposable.Dispose();
+    }
+});
 
 app.Run();

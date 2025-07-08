@@ -123,6 +123,9 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
         modelBuilder.Entity<AvailableSlot>()
             .HasIndex(e => e.Status);
         
+        modelBuilder.Entity<AvailableSlot>()
+            .HasIndex(e => new { e.WorkshopId, e.Status, e.StartTime });
+        
         modelBuilder.Entity<Booking>()
             .HasIndex(e => new { e.UserId, e.Status });
 

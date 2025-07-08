@@ -23,7 +23,8 @@ public class GetWorkshopsQueryHandler : IRequestHandler<GetWorkshopsQuery, List<
         // Filtrujemy po SearchTerm, jeśli został podany
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
         {
-            var searchTerm = request.SearchTerm.ToLower();
+            // ✅ POPRAWKA: Używamy Contains dla case-insensitive search (EF Core automatycznie tłumaczy na ILIKE w PostgreSQL)
+            var searchTerm = request.SearchTerm.ToLowerInvariant();
             query = query.Where(w => 
                 w.Name.ToLower().Contains(searchTerm) || 
                 w.Description.ToLower().Contains(searchTerm) ||

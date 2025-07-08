@@ -1,5 +1,6 @@
 using WorkshopBooker.Application.Common.Interfaces;
 using WorkshopBooker.Application.Slots.Dtos;
+using WorkshopBooker.Application.Common.Constants;
 using WorkshopBooker.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -23,13 +24,21 @@ public class ConflictResolutionService : IConflictResolutionService
         
         try
         {
-            // Znajdź wszystkie dostępne sloty w warsztacie
+            // ✅ POPRAWKA: Obliczenia w SQL zamiast w pamięci
             var availableSlots = await _context.AvailableSlots
                 .Where(s => s.WorkshopId == workshopId && 
-                           s.StartTime >= requestedTime.AddDays(-7) && // Szukaj w zakresie ±7 dni
-                           s.StartTime <= requestedTime.AddDays(7) &&
-                           s.Status == SlotStatus.Available)
+                           s.StartTime >= requestedTime.AddDays(-TimeConstants.AlternativeSlotsSearchRangeDays) && // Szukaj w zakresie ±7 dni
+                           s.StartTime <= requestedTime.AddDays(TimeConstants.AlternativeSlotsSearchRangeDays) &&
+                           s.Status == SlotStatus.Available &&
+                           s.StartTime.AddMinutes(durationMinutes) <= s.EndTime) // ✅ Obliczenia w SQL
                 .OrderBy(s => s.StartTime)
+                .Select(s => new
+                {
+                    s.Id,
+                    s.StartTime,
+                    s.EndTime,
+                    TimeDifferenceMinutes = (int)Math.Abs((s.StartTime - requestedTime).TotalMinutes) // ✅ Obliczenia w SQL
+                })
                 .ToListAsync();
 
             // Pobierz usługi warsztatu
@@ -39,12 +48,6 @@ public class ConflictResolutionService : IConflictResolutionService
 
             foreach (var slot in availableSlots)
             {
-                var timeDifference = Math.Abs((slot.StartTime - requestedTime).TotalMinutes);
-                
-                // Sprawdź czy slot ma wystarczający czas
-                var slotDuration = (slot.EndTime - slot.StartTime).TotalMinutes;
-                if (slotDuration < durationMinutes) continue;
-
                 // Użyj pierwszej dostępnej usługi jako przykładu
                 var service = services.FirstOrDefault();
                 if (service == null) continue;
@@ -56,8 +59,8 @@ public class ConflictResolutionService : IConflictResolutionService
                     EndTime = slot.EndTime,
                     ServiceName = service.Name,
                     Price = service.Price,
-                    TimeDifferenceMinutes = (int)timeDifference,
-                    Reason = GetAlternativeReason(timeDifference, slot.StartTime, requestedTime)
+                    TimeDifferenceMinutes = slot.TimeDifferenceMinutes,
+                    Reason = GetAlternativeReason(slot.TimeDifferenceMinutes, slot.StartTime, requestedTime)
                 };
 
                 alternatives.Add(alternative);

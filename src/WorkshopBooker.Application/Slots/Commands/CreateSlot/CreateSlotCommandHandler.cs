@@ -28,7 +28,7 @@ public class CreateSlotCommandHandler : IRequestHandler<CreateSlotCommand, Guid>
         var currentUser = _currentUserProvider.UserId;
         if (currentUser == null || workshop.UserId != currentUser)
         {
-            throw new UnauthorizedAccessException();
+            throw new WorkshopBooker.Application.Common.Exceptions.UnauthorizedAccessException();
         }
 
         bool overlaps = await _context.AvailableSlots.AnyAsync(s => s.WorkshopId == request.WorkshopId &&
