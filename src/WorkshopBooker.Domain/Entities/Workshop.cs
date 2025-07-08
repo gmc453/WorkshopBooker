@@ -9,10 +9,10 @@ public class Workshop
     public Guid Id { get; private set; }
 
     // Nazwa warsztatu - wymagana.
-    public string Name { get; private set; }
+    public string Name { get; private set; } = null!;
 
     // Opis warsztatu - może być dłuższy.
-    public string Description { get; private set; }
+    public string Description { get; private set; } = null!;
 
     // Dane kontaktowe i adresowe - na razie jako proste stringi,
     // w przyszłości można rozbić na osobne obiekty (Value Objects).

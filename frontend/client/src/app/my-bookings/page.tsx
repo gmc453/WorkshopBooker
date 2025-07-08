@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import { useMyBookings, Booking } from "../hooks/useMyBookings";
+import { useCancelBooking } from "../../hooks/useCancelBooking";
 import { format, parseISO, differenceInMinutes, isAfter } from "date-fns";
 import { pl } from "date-fns/locale";
 import { Calendar, Clock, CreditCard, CheckCircle, AlertCircle, XCircle, Search, Filter, Building } from 'lucide-react';
@@ -14,6 +15,13 @@ export default function MyBookingsPage() {
   const { isAuthenticated } = useAuth();
   const router = useRouter();
   const { data: bookings, isLoading, error } = useMyBookings();
+  
+  // Hook do anulowania rezerwacji
+  const { 
+    mutate: cancelBooking, 
+    isPending: isCancelling, 
+    error: cancelError 
+  } = useCancelBooking();
   
   // Stan dla filtrowania
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -122,6 +130,26 @@ export default function MyBookingsPage() {
   // Funkcja formatująca datę w przyjazny sposób
   const formatDateFriendly = (dateStr: string): string => {
     return format(parseISO(dateStr), "EEEE, d MMMM", { locale: pl });
+  };
+
+  // Funkcja do anulowania rezerwacji
+  const handleCancelBooking = (bookingId: string, serviceName: string) => {
+    const isConfirmed = window.confirm(
+      `Czy na pewno chcesz anulować rezerwację "${serviceName}"?\n\nTej operacji nie można cofnąć.`
+    );
+    
+    if (isConfirmed) {
+      cancelBooking(bookingId, {
+        onSuccess: () => {
+          // Toast notification lub alert o sukcesie
+          alert('Rezerwacja została pomyślnie anulowana!');
+        },
+        onError: (error: Error) => {
+          // Pokazuj konkretny błąd użytkownikowi
+          alert(`Błąd: ${error.message}`);
+        }
+      });
+    }
   };
 
   return (
@@ -301,10 +329,25 @@ export default function MyBookingsPage() {
                         {/* Akcje dla nadchodzących rezerwacji */}
                         {activeTab === 'upcoming' && (booking.status === 0 || booking.status === 1) && (
                           <button
-                            className="mt-4 px-4 py-2 border border-red-300 text-red-700 hover:bg-red-50 rounded-lg transition-colors text-sm"
-                            onClick={() => alert('Funkcja anulowania zostanie zaimplementowana wkrótce')}
+                            className={`mt-4 px-4 py-2 border rounded-lg transition-colors text-sm ${
+                              isCancelling 
+                                ? 'border-gray-300 text-gray-500 cursor-not-allowed bg-gray-50' 
+                                : 'border-red-300 text-red-700 hover:bg-red-50'
+                            }`}
+                            onClick={() => handleCancelBooking(booking.id, booking.serviceName)}
+                            disabled={isCancelling}
                           >
-                            Anuluj rezerwację
+                            {isCancelling ? (
+                              <span className="flex items-center">
+                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Anulowanie...
+                              </span>
+                            ) : (
+                              'Anuluj rezerwację'
+                            )}
                           </button>
                         )}
                       </div>

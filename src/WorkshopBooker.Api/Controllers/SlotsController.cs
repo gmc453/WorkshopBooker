@@ -63,7 +63,7 @@ public class SlotsController : ControllerBase
         var nextSlot = slots.Where(s => s.IsAvailable)
                            .OrderBy(s => s.StartTime)
                            .FirstOrDefault();
-        return Ok(nextSlot);
+        return Ok(nextSlot ?? new { message = "No available slots found" });
     }
 
     [HttpGet("slots/{slotId}/availability")]

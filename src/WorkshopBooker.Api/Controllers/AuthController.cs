@@ -41,7 +41,8 @@ public class AuthController : ControllerBase
             return BadRequest(new { error = result.Error, validationErrors = result.ValidationErrors });
         }
 
-        var response = new AuthResponse(result.Value);
+        var token = result.Value ?? throw new InvalidOperationException("Token generation failed");
+        var response = new AuthResponse(token);
         return Ok(response);
     }
 }
