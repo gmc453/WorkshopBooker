@@ -72,4 +72,6 @@ export const ServicesChart: React.FC<ServicesChartProps> = ({ data, title }) => 
   };
 
   return <Pie data={chartData} options={options} />;
-}; 
+};
+
+export default ServicesChart; 

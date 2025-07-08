@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using WorkshopBooker.Application.Analytics.Queries.GetWorkshopAnalytics;
 using WorkshopBooker.Application.Analytics.Queries.GetGlobalAnalytics;
+using WorkshopBooker.Application.Analytics.Queries.GetCustomerAnalytics;
+using WorkshopBooker.Application.Analytics.Queries.GetPredictions;
+using WorkshopBooker.Application.Analytics.Queries.GetSeasonalAnalytics;
 using WorkshopBooker.Application.Analytics.Dtos;
 using WorkshopBooker.Application.Common.Constants;
 using Microsoft.AspNetCore.RateLimiting;
@@ -165,6 +168,65 @@ public class AnalyticsController : ControllerBase
             };
             return Ok(quickStats);
         }
+        
+        return BadRequest(result.Error);
+    }
+
+    [HttpGet("customers")]
+    public async Task<IActionResult> GetCustomerAnalytics(Guid workshopId, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
+    {
+        var start = startDate ?? DateTime.UtcNow.AddDays(-TimeConstants.DefaultAnalyticsPeriodDays);
+        var end = endDate ?? DateTime.UtcNow;
+
+        var query = new GetCustomerAnalyticsQuery
+        {
+            WorkshopId = workshopId,
+            StartDate = start,
+            EndDate = end
+        };
+
+        var result = await _sender.Send(query);
+        
+        if (result.IsSuccess && result.Value != null)
+            return Ok(result.Value);
+        
+        return BadRequest(result.Error);
+    }
+
+    [HttpGet("predictions")]
+    public async Task<IActionResult> GetPredictions(Guid workshopId, [FromQuery] int predictionDays = 30)
+    {
+        var query = new GetPredictionsQuery
+        {
+            WorkshopId = workshopId,
+            PredictionDays = predictionDays
+        };
+
+        var result = await _sender.Send(query);
+        
+        if (result.IsSuccess && result.Value != null)
+            return Ok(result.Value);
+        
+        return BadRequest(result.Error);
+    }
+
+    [HttpGet("seasonal")]
+    public async Task<IActionResult> GetSeasonalAnalytics(Guid workshopId, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
+    {
+        var start = startDate ?? DateTime.UtcNow.AddDays(-TimeConstants.DefaultAnalyticsPeriodDays);
+        var end = endDate ?? DateTime.UtcNow;
+
+        var query = new GetSeasonalAnalyticsQuery
+        {
+            WorkshopId = workshopId,
+            StartDate = start,
+            EndDate = end
+        };
+
+        var result = await _sender.Send(query);
+        
+        if (result.IsSuccess && result.Value != null)
+            return Ok(result.Value);
         
         return BadRequest(result.Error);
     }
