@@ -49,8 +49,7 @@ public class ConflictResolutionService : IConflictResolutionService
             foreach (var slot in availableSlots)
             {
                 // Użyj pierwszej dostępnej usługi jako przykładu
-                var service = services.FirstOrDefault();
-                if (service == null) continue;
+                var service = services.FirstOrDefault() ?? throw new InvalidOperationException("No services found for workshop");
 
                 var alternative = new AlternativeSlot
                 {

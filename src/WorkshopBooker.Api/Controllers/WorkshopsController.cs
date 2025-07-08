@@ -36,6 +36,11 @@ public class WorkshopsController : ControllerBase
             return BadRequest(new { error = result.Error, validationErrors = result.ValidationErrors });
         }
 
+        if (result.Value == null)
+        {
+            return BadRequest(new { error = "Workshop creation failed - no ID returned" });
+        }
+
         return CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value);
     }
     [HttpGet]

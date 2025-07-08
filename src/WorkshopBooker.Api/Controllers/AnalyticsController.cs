@@ -37,7 +37,7 @@ public class AnalyticsController : ControllerBase
 
         var result = await _sender.Send(query);
         
-        if (result.IsSuccess)
+        if (result.IsSuccess && result.Value != null)
             return Ok(result.Value);
         
         return BadRequest(result.Error);
@@ -58,7 +58,7 @@ public class AnalyticsController : ControllerBase
 
         var result = await _sender.Send(query);
         
-        if (result.IsSuccess)
+        if (result.IsSuccess && result.Value != null)
             return Ok(result.Value.ServiceDistribution);
         
         return BadRequest(result.Error);
@@ -79,7 +79,7 @@ public class AnalyticsController : ControllerBase
 
         var result = await _sender.Send(query);
         
-        if (result.IsSuccess)
+        if (result.IsSuccess && result.Value != null)
             return Ok(result.Value.PopularTimeSlots);
         
         return BadRequest(result.Error);
@@ -100,7 +100,7 @@ public class AnalyticsController : ControllerBase
 
         var result = await _sender.Send(query);
         
-        if (result.IsSuccess)
+        if (result.IsSuccess && result.Value != null)
             return Ok(result.Value);
         
         return BadRequest(result.Error);
@@ -122,14 +122,14 @@ public class AnalyticsController : ControllerBase
 
         var result = await _sender.Send(query);
         
-        if (result.IsSuccess)
+        if (result.IsSuccess && result.Value != null)
             return Ok(result.Value.RevenueOverTime);
         
         return BadRequest(result.Error);
     }
 
     [HttpGet("conflicts")]
-    public async Task<IActionResult> GetConflicts(Guid workshopId, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
+    public Task<IActionResult> GetConflicts(Guid workshopId, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
     {
         var start = startDate ?? DateTime.UtcNow.AddDays(-TimeConstants.DefaultAnalyticsPeriodDays);
         var end = endDate ?? DateTime.UtcNow;
@@ -137,6 +137,6 @@ public class AnalyticsController : ControllerBase
         // TODO: Implement conflict detection logic
         // This could include double bookings, overlapping slots, etc.
         
-        return Ok(new { message = "Conflict detection endpoint - to be implemented" });
+        return Task.FromResult<IActionResult>(Ok(new { message = "Conflict detection endpoint - to be implemented" }));
     }
 } 

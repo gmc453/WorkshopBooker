@@ -1,3 +1,5 @@
+// SKOPIUJ I ZASTĄP ZAWARTOŚĆ frontend/admin/src/pages/AnalyticsPage.tsx
+
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Star, Clock, Calendar, Download, FileText } from 'lucide-react';
@@ -13,8 +15,8 @@ interface AnalyticsData {
   averageRating: number;
   totalReviews: number;
   averageServiceTime: number;
-  revenueGrowth: number;
-  bookingsGrowth: number;
+  revenueGrowth?: number;  // Opcjonalne pola
+  bookingsGrowth?: number; // Opcjonalne pola
   serviceDistribution: ServiceDistribution[];
   popularTimeSlots: TimeSlotAnalytics[];
   revenueOverTime: RevenueDataPoint[];
@@ -58,11 +60,30 @@ export default function AnalyticsPage() {
     try {
       setLoading(true);
       const response = await axios.get(`/api/workshops/${workshopId}/analytics/overview?startDate=${getStartDate()}&endDate=${new Date().toISOString()}`);
-      setAnalytics(response.data);
+      
+      // Validate and set defaults for missing data
+      const data = response.data;
+      setAnalytics({
+        ...data,
+        revenueGrowth: data.revenueGrowth ?? 0,
+        bookingsGrowth: data.bookingsGrowth ?? 0,
+        serviceDistribution: data.serviceDistribution ?? [],
+        popularTimeSlots: data.popularTimeSlots ?? [],
+        revenueOverTime: data.revenueOverTime ?? []
+      });
+      
       setError(null);
     } catch (err: any) {
-      setError('Nie udało się pobrać danych analitycznych');
-      console.error(err);
+      console.error('Analytics fetch error:', err);
+      if (err.response?.status === 404) {
+        setError('Warsztat nie został znaleziony');
+      } else if (err.response?.status === 401) {
+        setError('Brak uprawnień do tego warsztatu');
+      } else if (err.code === 'ECONNREFUSED' || err.code === 'ERR_NETWORK') {
+        setError('Backend API nie jest uruchomiony. Uruchom: dotnet run w folderze WorkshopBooker.Api');
+      } else {
+        setError(`Nie udało się pobrać danych analitycznych: ${err.message}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -75,15 +96,25 @@ export default function AnalyticsPage() {
     return startDate.toISOString();
   };
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | undefined | null) => {
+    const value = amount ?? 0;
     return new Intl.NumberFormat('pl-PL', {
       style: 'currency',
       currency: 'PLN'
-    }).format(amount);
+    }).format(value);
   };
 
-  const formatPercentage = (value: number) => {
+  // 🔧 NAPRAWIONA FUNKCJA z null checking
+  const formatPercentage = (value: number | undefined | null) => {
+    if (value === null || value === undefined || isNaN(value)) {
+      return '0.0%';
+    }
     return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
+  };
+
+  // 🔧 POMOCNICZA FUNKCJA dla bezpiecznych liczb
+  const safeNumber = (value: number | undefined | null, defaultValue: number = 0): number => {
+    return value ?? defaultValue;
   };
 
   const exportToCSV = () => {
@@ -95,23 +126,23 @@ export default function AnalyticsPage() {
       ['KPI', 'Wartość', 'Wzrost'],
       ['Przychody', formatCurrency(analytics.monthlyRevenue), formatPercentage(analytics.revenueGrowth)],
       ['Rezerwacje', analytics.monthlyBookings.toString(), formatPercentage(analytics.bookingsGrowth)],
-      ['Średnia ocena', analytics.averageRating.toFixed(1), `${analytics.totalReviews} recenzji`],
-      ['Średni czas usługi', `${analytics.averageServiceTime.toFixed(1)}h`, 'na rezerwację'],
+      ['Średnia ocena', safeNumber(analytics.averageRating).toFixed(1), `${analytics.totalReviews} recenzji`],
+      ['Średni czas usługi', `${safeNumber(analytics.averageServiceTime).toFixed(1)}h`, 'na rezerwację'],
       [''],
       ['Popularne usługi', 'Rezerwacje', 'Przychody', 'Procent', 'Średnia ocena'],
       ...analytics.serviceDistribution.map(service => [
         service.serviceName,
         service.bookingCount.toString(),
         formatCurrency(service.totalRevenue),
-        `${service.percentage.toFixed(1)}%`,
-        service.averageRating.toFixed(1)
+        `${safeNumber(service.percentage).toFixed(1)}%`,
+        safeNumber(service.averageRating).toFixed(1)
       ]),
       [''],
       ['Popularne godziny', 'Rezerwacje', 'Wykorzystanie'],
       ...analytics.popularTimeSlots.map(slot => [
         slot.timeSlot,
         slot.bookingCount.toString(),
-        `${slot.utilizationRate.toFixed(1)}%`
+        `${safeNumber(slot.utilizationRate).toFixed(1)}%`
       ]),
       [''],
       ['Trend przychodów (ostatnie 7 dni)', 'Data', 'Przychody', 'Rezerwacje'],
@@ -163,9 +194,9 @@ export default function AnalyticsPage() {
     yPos += 6;
     doc.text(`Rezerwacje: ${analytics.monthlyBookings} (${formatPercentage(analytics.bookingsGrowth)})`, 20, yPos);
     yPos += 6;
-    doc.text(`Średnia ocena: ${analytics.averageRating.toFixed(1)} (${analytics.totalReviews} recenzji)`, 20, yPos);
+    doc.text(`Średnia ocena: ${safeNumber(analytics.averageRating).toFixed(1)} (${analytics.totalReviews} recenzji)`, 20, yPos);
     yPos += 6;
-    doc.text(`Średni czas usługi: ${analytics.averageServiceTime.toFixed(1)}h`, 20, yPos);
+    doc.text(`Średni czas usługi: ${safeNumber(analytics.averageServiceTime).toFixed(1)}h`, 20, yPos);
     yPos += 15;
 
     // Popular Services
@@ -187,7 +218,7 @@ export default function AnalyticsPage() {
 
     doc.setFontSize(10);
     analytics.popularTimeSlots.slice(0, 5).forEach(slot => {
-      doc.text(`${slot.timeSlot}: ${slot.bookingCount} rezerwacji, ${slot.utilizationRate.toFixed(1)}% wykorzystanie`, 20, yPos);
+      doc.text(`${slot.timeSlot}: ${slot.bookingCount} rezerwacji, ${safeNumber(slot.utilizationRate).toFixed(1)}% wykorzystanie`, 20, yPos);
       yPos += 6;
     });
 
@@ -212,10 +243,18 @@ export default function AnalyticsPage() {
         <div className="max-w-7xl mx-auto">
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
             <p className="text-red-700 font-medium">{error || 'Nie udało się załadować danych'}</p>
-            <Link to="/" className="inline-flex items-center mt-4 text-blue-600 hover:underline">
-              <ArrowLeft className="w-4 h-4 mr-1" />
-              Wróć do dashboard
-            </Link>
+            <div className="mt-4 space-y-2">
+              <Link to="/" className="inline-flex items-center text-blue-600 hover:underline">
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Wróć do dashboard
+              </Link>
+              <button 
+                onClick={fetchAnalytics}
+                className="block mx-auto px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Spróbuj ponownie
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -245,28 +284,28 @@ export default function AnalyticsPage() {
                 <select 
                   value={timeRange} 
                   onChange={(e) => setTimeRange(e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:ring-blue-500 focus:border-blue-500"
+                  className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="7">7 dni</option>
                   <option value="30">30 dni</option>
                   <option value="90">90 dni</option>
-                  <option value="365">1 rok</option>
+                  <option value="365">Rok</option>
                 </select>
               </div>
               
               <div className="flex items-center space-x-2">
                 <button
                   onClick={exportToCSV}
-                  className="flex items-center space-x-2 px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors"
+                  className="flex items-center space-x-1 px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
                 >
-                  <Download className="h-4 w-4" />
+                  <Download className="w-4 h-4" />
                   <span>CSV</span>
                 </button>
                 <button
                   onClick={exportToPDF}
-                  className="flex items-center space-x-2 px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
+                  className="flex items-center space-x-1 px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
                 >
-                  <FileText className="h-4 w-4" />
+                  <FileText className="w-4 h-4" />
                   <span>PDF</span>
                 </button>
               </div>
@@ -278,65 +317,69 @@ export default function AnalyticsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* Revenue */}
+          {/* Revenue Card */}
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <DollarSign className="h-8 w-8 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Przychody</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Przychody</p>
                 <p className="text-2xl font-bold text-gray-900">{formatCurrency(analytics.monthlyRevenue)}</p>
-                <div className={`flex items-center text-sm ${analytics.revenueGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {analytics.revenueGrowth >= 0 ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
-                  {formatPercentage(analytics.revenueGrowth)}
+                <div className="flex items-center mt-1">
+                  {safeNumber(analytics.revenueGrowth) >= 0 ? (
+                    <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
+                  ) : (
+                    <TrendingDown className="w-4 h-4 text-red-500 mr-1" />
+                  )}
+                  <span className={`text-sm ${safeNumber(analytics.revenueGrowth) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatPercentage(analytics.revenueGrowth)}
+                  </span>
                 </div>
               </div>
+              <DollarSign className="w-8 h-8 text-green-500" />
             </div>
           </div>
 
-          {/* Bookings */}
+          {/* Bookings Card */}
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <Calendar className="h-8 w-8 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Rezerwacje</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Rezerwacje</p>
                 <p className="text-2xl font-bold text-gray-900">{analytics.monthlyBookings}</p>
-                <div className={`flex items-center text-sm ${analytics.bookingsGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {analytics.bookingsGrowth >= 0 ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
-                  {formatPercentage(analytics.bookingsGrowth)}
+                <div className="flex items-center mt-1">
+                  {safeNumber(analytics.bookingsGrowth) >= 0 ? (
+                    <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
+                  ) : (
+                    <TrendingDown className="w-4 h-4 text-red-500 mr-1" />
+                  )}
+                  <span className={`text-sm ${safeNumber(analytics.bookingsGrowth) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatPercentage(analytics.bookingsGrowth)}
+                  </span>
                 </div>
               </div>
+              <Calendar className="w-8 h-8 text-blue-500" />
             </div>
           </div>
 
-          {/* Rating */}
+          {/* Rating Card */}
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <Star className="h-8 w-8 text-yellow-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Średnia ocena</p>
-                <p className="text-2xl font-bold text-gray-900">{analytics.averageRating.toFixed(1)}</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Średnia ocena</p>
+                <p className="text-2xl font-bold text-gray-900">{safeNumber(analytics.averageRating).toFixed(1)}</p>
                 <p className="text-sm text-gray-500">{analytics.totalReviews} recenzji</p>
               </div>
+              <Star className="w-8 h-8 text-yellow-500" />
             </div>
           </div>
 
-          {/* Service Time */}
+          {/* Service Time Card */}
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <Clock className="h-8 w-8 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Średni czas usługi</p>
-                <p className="text-2xl font-bold text-gray-900">{analytics.averageServiceTime.toFixed(1)}h</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Średni czas usługi</p>
+                <p className="text-2xl font-bold text-gray-900">{safeNumber(analytics.averageServiceTime).toFixed(1)}h</p>
                 <p className="text-sm text-gray-500">na rezerwację</p>
               </div>
+              <Clock className="w-8 h-8 text-purple-500" />
             </div>
           </div>
         </div>
@@ -346,56 +389,68 @@ export default function AnalyticsPage() {
           {/* Popular Services */}
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Popularne usługi</h3>
-            <div className="space-y-4">
-              {analytics.serviceDistribution.slice(0, 5).map((service) => (
-                <div key={service.serviceId} className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">{service.serviceName}</p>
-                    <p className="text-sm text-gray-500">{service.bookingCount} rezerwacji</p>
+            {analytics.serviceDistribution.length > 0 ? (
+              <div className="space-y-4">
+                {analytics.serviceDistribution.slice(0, 5).map((service) => (
+                  <div key={service.serviceId} className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">{service.serviceName}</p>
+                      <p className="text-sm text-gray-500">{service.bookingCount} rezerwacji</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-gray-900">{formatCurrency(service.totalRevenue)}</p>
+                      <p className="text-sm text-gray-500">{safeNumber(service.percentage).toFixed(1)}%</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-gray-900">{formatCurrency(service.totalRevenue)}</p>
-                    <p className="text-sm text-gray-500">{service.percentage.toFixed(1)}%</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center py-8">Brak danych o usługach w tym okresie</p>
+            )}
           </div>
 
           {/* Popular Time Slots */}
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Popularne godziny</h3>
-            <div className="space-y-4">
-              {analytics.popularTimeSlots.slice(0, 5).map((slot, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">{slot.timeSlot}</p>
-                    <p className="text-sm text-gray-500">{slot.bookingCount} rezerwacji</p>
+            {analytics.popularTimeSlots.length > 0 ? (
+              <div className="space-y-4">
+                {analytics.popularTimeSlots.slice(0, 5).map((slot, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">{slot.timeSlot}</p>
+                      <p className="text-sm text-gray-500">{slot.bookingCount} rezerwacji</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-gray-900">{safeNumber(slot.utilizationRate).toFixed(1)}%</p>
+                      <p className="text-sm text-gray-500">wykorzystanie</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-gray-900">{slot.utilizationRate.toFixed(1)}%</p>
-                    <p className="text-sm text-gray-500">wykorzystanie</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center py-8">Brak danych o slotach w tym okresie</p>
+            )}
           </div>
         </div>
 
         {/* Revenue Trend */}
         <div className="mt-8 bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Trend przychodów</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-            {analytics.revenueOverTime.slice(-7).map((point, index) => (
-              <div key={index} className="text-center">
-                <p className="text-sm font-medium text-gray-900">{formatCurrency(point.revenue)}</p>
-                <p className="text-xs text-gray-500">{new Date(point.date).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' })}</p>
-                <p className="text-xs text-gray-400">{point.bookings} rezerwacji</p>
-              </div>
-            ))}
-          </div>
+          {analytics.revenueOverTime.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+              {analytics.revenueOverTime.slice(-7).map((point, index) => (
+                <div key={index} className="text-center">
+                  <p className="text-sm font-medium text-gray-900">{formatCurrency(point.revenue)}</p>
+                  <p className="text-xs text-gray-500">{new Date(point.date).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' })}</p>
+                  <p className="text-xs text-gray-400">{point.bookings} rezerwacji</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-8">Brak danych o przychodach w tym okresie</p>
+          )}
         </div>
       </div>
     </div>
   );
-} 
+}

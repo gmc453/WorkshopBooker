@@ -33,7 +33,7 @@ public class ReviewsController : ControllerBase
         
         var result = await _mediator.Send(command);
         
-        if (result.IsSuccess)
+        if (result.IsSuccess && result.Value != null)
             return Ok(result.Value);
         
         return BadRequest(result.Error);
@@ -55,7 +55,7 @@ public class ReviewsController : ControllerBase
 
         var result = await _mediator.Send(query);
         
-        if (result.IsSuccess)
+        if (result.IsSuccess && result.Value != null)
             return Ok(result.Value);
         
         return BadRequest(result.Error);

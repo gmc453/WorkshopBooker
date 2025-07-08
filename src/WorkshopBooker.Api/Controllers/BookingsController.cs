@@ -39,6 +39,11 @@ public class BookingsController : ControllerBase
             return BadRequest(new { error = result.Error, validationErrors = result.ValidationErrors });
         }
 
+        if (result.Value == null)
+        {
+            return BadRequest(new { error = "Booking creation failed - no ID returned" });
+        }
+
         return CreatedAtAction(nameof(Create), new { serviceId, id = result.Value }, result.Value);
     }
 
