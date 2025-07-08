@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WorkshopBooker.Application.Common.Interfaces;
+using WorkshopBooker.Application.Common.Exceptions;
 using WorkshopBooker.Application.Workshops.Dtos;
 
 namespace WorkshopBooker.Application.Workshops.Queries.GetMyWorkshops;
@@ -21,7 +22,7 @@ public class GetMyWorkshopsQueryHandler : IRequestHandler<GetMyWorkshopsQuery, L
         var userId = _currentUserProvider.UserId;
         if (userId is null)
         {
-            throw new Exception("User must be authenticated");
+            throw new UnauthenticatedUserException();
         }
 
         var workshops = await _context.Workshops

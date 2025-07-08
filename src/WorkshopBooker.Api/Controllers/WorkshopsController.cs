@@ -66,6 +66,7 @@ public class WorkshopsController : ControllerBase
     }
     
     [HttpPut("{id}")]
+    [Authorize]
     [EnableRateLimiting("WritePolicy")]
     public async Task<IActionResult> Update(Guid id, UpdateWorkshopCommand command)
     {

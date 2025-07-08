@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WorkshopBooker.Application.Common.Interfaces;
+using WorkshopBooker.Application.Common.Exceptions;
 using WorkshopBooker.Domain.Entities;
 
 namespace WorkshopBooker.Application.Slots.Commands.CreateSlot;
@@ -21,7 +22,7 @@ public class CreateSlotCommandHandler : IRequestHandler<CreateSlotCommand, Guid>
         var workshop = await _context.Workshops.FirstOrDefaultAsync(w => w.Id == request.WorkshopId, cancellationToken);
         if (workshop is null)
         {
-            throw new Exception("Workshop not found");
+            throw new WorkshopNotFoundException();
         }
 
         var currentUser = _currentUserProvider.UserId;
@@ -31,11 +32,10 @@ public class CreateSlotCommandHandler : IRequestHandler<CreateSlotCommand, Guid>
         }
 
         bool overlaps = await _context.AvailableSlots.AnyAsync(s => s.WorkshopId == request.WorkshopId &&
-            ((request.StartTime >= s.StartTime && request.StartTime < s.EndTime) ||
-             (request.EndTime > s.StartTime && request.EndTime <= s.EndTime)), cancellationToken);
+            request.StartTime < s.EndTime && request.EndTime > s.StartTime, cancellationToken);
         if (overlaps)
         {
-            throw new Exception("Slot overlaps with existing");
+            throw new SlotOverlapException();
         }
 
         var slot = new AvailableSlot(Guid.NewGuid(), request.StartTime, request.EndTime, request.WorkshopId);

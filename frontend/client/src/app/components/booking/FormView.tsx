@@ -1,3 +1,5 @@
+"use client";
+
 import React from 'react';
 import { ArrowLeft, User, Mail, Phone, FileText, Calendar, Clock } from 'lucide-react';
 import { Slot, BookingFormData } from '../../../hooks/useBookingFlow';

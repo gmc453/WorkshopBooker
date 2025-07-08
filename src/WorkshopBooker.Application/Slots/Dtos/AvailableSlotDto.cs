@@ -9,6 +9,5 @@ public record AvailableSlotDto
     public DateTime EndTime { get; init; }
     public SlotStatus Status { get; init; }
     public Guid WorkshopId { get; init; }
-    public Guid ServiceId { get; init; }
     public bool IsAvailable { get; init; }
 }

@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using WorkshopBooker.Application.Common.Exceptions;
 
 namespace WorkshopBooker.Api.Middleware;
 
@@ -45,6 +46,11 @@ public class GlobalExceptionHandler
             ArgumentException => (int)HttpStatusCode.BadRequest,
             UnauthorizedAccessException => (int)HttpStatusCode.Unauthorized,
             InvalidOperationException => (int)HttpStatusCode.BadRequest,
+            SlotOverlapException => (int)HttpStatusCode.Conflict,
+            WorkshopNotFoundException => (int)HttpStatusCode.NotFound,
+            SlotNotFoundException => (int)HttpStatusCode.NotFound,
+            ServiceNotFoundException => (int)HttpStatusCode.NotFound,
+            UnauthenticatedUserException => (int)HttpStatusCode.Unauthorized,
             _ => (int)HttpStatusCode.InternalServerError
         };
 
