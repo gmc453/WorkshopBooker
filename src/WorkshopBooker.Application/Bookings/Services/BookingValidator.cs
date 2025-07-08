@@ -18,35 +18,42 @@ public class BookingValidator
     {
         var result = new BookingValidationResult();
 
-        var slot = await _context.AvailableSlots.FirstOrDefaultAsync(s => s.Id == request.SlotId && s.Status == SlotStatus.Available, cancellationToken);
-        if (slot == null)
+        var slotWithRelations = await _context.AvailableSlots
+            .Include(s => s.Workshop)
+            .Where(s => s.Id == request.SlotId && s.Status == SlotStatus.Available)
+            .Select(s => new {
+                Slot = s,
+                Workshop = s.Workshop,
+                Service = _context.Services.FirstOrDefault(srv => srv.Id == request.ServiceId && srv.IsActive)
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (slotWithRelations?.Slot == null)
         {
             result.AddError("Wybrany termin jest już niedostępny");
             return result;
         }
 
-        var workshop = await _context.Workshops.FirstOrDefaultAsync(w => w.Id == slot.WorkshopId && w.IsActive, cancellationToken);
-        if (workshop == null)
+        if (slotWithRelations.Workshop == null || !slotWithRelations.Workshop.IsActive)
         {
             result.AddError("Warsztat jest obecnie niedostępny");
             return result;
         }
 
-        var service = await _context.Services.FirstOrDefaultAsync(s => s.Id == request.ServiceId && s.IsActive, cancellationToken);
-        if (service == null)
+        if (slotWithRelations.Service == null)
         {
             result.AddError("Wybrana usługa jest niedostępna");
             return result;
         }
 
-        if (service.WorkshopId != slot.WorkshopId)
+        if (slotWithRelations.Service.WorkshopId != slotWithRelations.Slot.WorkshopId)
         {
             result.AddError("Wybrana usługa nie należy do tego samego warsztatu co termin");
             return result;
         }
 
-        var slotDuration = (slot.EndTime - slot.StartTime).TotalMinutes;
-        if (slotDuration < service.DurationInMinutes)
+        var slotDuration = (slotWithRelations.Slot.EndTime - slotWithRelations.Slot.StartTime).TotalMinutes;
+        if (slotDuration < slotWithRelations.Service.DurationInMinutes)
         {
             result.AddError("Wybrany termin jest za krótki dla tej usługi");
             return result;

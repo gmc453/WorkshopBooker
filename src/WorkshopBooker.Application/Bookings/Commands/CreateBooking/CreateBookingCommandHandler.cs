@@ -55,10 +55,15 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
             }
 
             var slot = await _context.AvailableSlots
-                .Where(s => s.Id == request.SlotId && s.Status == SlotStatus.Available)
-                .FirstOrDefaultAsync(cancellationToken);
+                .FirstOrDefaultAsync(s => s.Id == request.SlotId, cancellationToken);
 
             if (slot == null)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return Result<Guid>.Failure("Wybrany termin nie został znaleziony");
+            }
+
+            if (slot.Status != SlotStatus.Available)
             {
                 await transaction.RollbackAsync(cancellationToken);
                 return Result<Guid>.Failure("Wybrany termin jest już niedostępny");

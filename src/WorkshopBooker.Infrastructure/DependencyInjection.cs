@@ -16,6 +16,8 @@ public static class DependencyInjection
         services.AddScoped<IEmailService, SendGridEmailService>();
         services.AddScoped<ISmsService, TwilioSmsService>();
         services.AddScoped<INotificationService, NotificationService>();
+        
+        // ✅ POPRAWKA: Rejestracja jako singleton z proper disposal
         services.AddSingleton<IBackgroundJobService, BackgroundJobService>();
         
         // Business logic services

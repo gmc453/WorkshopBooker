@@ -3,6 +3,7 @@ using WorkshopBooker.Application.Bookings.Dtos;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System.Threading;
 
 namespace WorkshopBooker.Infrastructure.Services;
 
@@ -50,7 +51,23 @@ public class NotificationService : INotificationService
         if (!string.IsNullOrEmpty(phoneNumber))
             tasks.Add(SendSmsAsync(phoneNumber, smsMessage));
 
-        await Task.WhenAll(tasks);
+        if (tasks.Count > 0)
+        {
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)); // 30s timeout
+                await Task.WhenAll(tasks).WaitAsync(cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("Timeout podczas wysyłania powiadomień o rezerwacji");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Błąd podczas wysyłania powiadomień o rezerwacji");
+            }
+        }
+        
         await ScheduleReminders(email, phoneNumber, booking);
     }
 
@@ -66,7 +83,22 @@ public class NotificationService : INotificationService
         if (!string.IsNullOrEmpty(phoneNumber))
             tasks.Add(SendSmsAsync(phoneNumber, smsMessage));
 
-        await Task.WhenAll(tasks);
+        if (tasks.Count > 0)
+        {
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)); // 30s timeout
+                await Task.WhenAll(tasks).WaitAsync(cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("Timeout podczas wysyłania przypomnień o rezerwacji");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Błąd podczas wysyłania przypomnień o rezerwacji");
+            }
+        }
     }
 
     public async Task SendBookingCancellationAsync(string email, string phoneNumber, BookingDto booking)
@@ -81,7 +113,22 @@ public class NotificationService : INotificationService
         if (!string.IsNullOrEmpty(phoneNumber))
             tasks.Add(SendSmsAsync(phoneNumber, smsMessage));
 
-        await Task.WhenAll(tasks);
+        if (tasks.Count > 0)
+        {
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)); // 30s timeout
+                await Task.WhenAll(tasks).WaitAsync(cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("Timeout podczas wysyłania powiadomień o anulowaniu");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Błąd podczas wysyłania powiadomień o anulowaniu");
+            }
+        }
     }
 
     private async Task ScheduleReminders(string email, string phoneNumber, BookingDto booking)

@@ -115,4 +115,14 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// ✅ POPRAWKA: Proper disposal dla BackgroundJobService
+app.Lifetime.ApplicationStopping.Register(() =>
+{
+    var backgroundJobService = app.Services.GetService<IBackgroundJobService>();
+    if (backgroundJobService is IDisposable disposable)
+    {
+        disposable.Dispose();
+    }
+});
+
 app.Run();
