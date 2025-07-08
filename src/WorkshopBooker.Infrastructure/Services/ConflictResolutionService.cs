@@ -1,5 +1,6 @@
 using WorkshopBooker.Application.Common.Interfaces;
 using WorkshopBooker.Application.Slots.Dtos;
+using WorkshopBooker.Application.Common.Constants;
 using WorkshopBooker.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -26,8 +27,8 @@ public class ConflictResolutionService : IConflictResolutionService
             // ✅ POPRAWKA: Obliczenia w SQL zamiast w pamięci
             var availableSlots = await _context.AvailableSlots
                 .Where(s => s.WorkshopId == workshopId && 
-                           s.StartTime >= requestedTime.AddDays(-7) && // Szukaj w zakresie ±7 dni
-                           s.StartTime <= requestedTime.AddDays(7) &&
+                           s.StartTime >= requestedTime.AddDays(-TimeConstants.AlternativeSlotsSearchRangeDays) && // Szukaj w zakresie ±7 dni
+                           s.StartTime <= requestedTime.AddDays(TimeConstants.AlternativeSlotsSearchRangeDays) &&
                            s.Status == SlotStatus.Available &&
                            s.StartTime.AddMinutes(durationMinutes) <= s.EndTime) // ✅ Obliczenia w SQL
                 .OrderBy(s => s.StartTime)

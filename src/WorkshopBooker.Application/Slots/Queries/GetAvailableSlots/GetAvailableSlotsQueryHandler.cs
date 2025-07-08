@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WorkshopBooker.Application.Common.Interfaces;
 using WorkshopBooker.Application.Slots.Dtos;
+using WorkshopBooker.Application.Common.Constants;
 
 namespace WorkshopBooker.Application.Slots.Queries.GetAvailableSlots;
 
@@ -23,7 +24,7 @@ public class GetAvailableSlotsQueryHandler : IRequestHandler<GetAvailableSlotsQu
             return new List<AvailableSlotDto>();
         }
 
-        var minimumStartTime = DateTime.UtcNow.AddHours(2);
+        var minimumStartTime = DateTime.UtcNow.AddHours(TimeConstants.MinimumBookingAdvanceHours);
 
         var query = _context.AvailableSlots
             .Where(s => s.WorkshopId == request.WorkshopId &&

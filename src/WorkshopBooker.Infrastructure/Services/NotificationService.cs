@@ -1,5 +1,6 @@
 using WorkshopBooker.Application.Common.Interfaces;
 using WorkshopBooker.Application.Bookings.Dtos;
+using WorkshopBooker.Application.Common.Constants;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -55,7 +56,7 @@ public class NotificationService : INotificationService
         {
             try
             {
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)); // 30s timeout
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(TimeConstants.NotificationTimeoutSeconds));
                 await Task.WhenAll(tasks).WaitAsync(cts.Token);
             }
             catch (OperationCanceledException)
@@ -89,7 +90,7 @@ public class NotificationService : INotificationService
         {
             try
             {
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)); // 30s timeout
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(TimeConstants.NotificationTimeoutSeconds));
                 await Task.WhenAll(tasks).WaitAsync(cts.Token);
             }
             catch (OperationCanceledException)
@@ -121,7 +122,7 @@ public class NotificationService : INotificationService
         {
             try
             {
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)); // 30s timeout
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(TimeConstants.NotificationTimeoutSeconds));
                 await Task.WhenAll(tasks).WaitAsync(cts.Token);
             }
             catch (OperationCanceledException)
@@ -156,33 +157,33 @@ public class NotificationService : INotificationService
             slotStartUtc = DateTime.SpecifyKind(booking.SlotStartTime, DateTimeKind.Utc);
         }
 
-        var reminder24 = slotStartUtc.AddHours(-24);
+        var reminder24 = slotStartUtc.AddHours(-TimeConstants.ReminderHoursBeforeSlot);
         if (reminder24 > DateTime.UtcNow)
         {
             try
             {
                 await _backgroundJobService.ScheduleAsync(
-                    serviceProvider => SendBookingReminderViaServiceProvider(serviceProvider, email, phoneNumber, booking, 24),
+                    serviceProvider => SendBookingReminderViaServiceProvider(serviceProvider, email, phoneNumber, booking, TimeConstants.ReminderHoursBeforeSlot),
                     new DateTimeOffset(reminder24, TimeSpan.Zero));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Błąd podczas planowania przypomnienia 24h dla rezerwacji {BookingId}", booking.Id);
+                _logger.LogError(ex, "Błąd podczas planowania przypomnienia {Hours}h dla rezerwacji {BookingId}", TimeConstants.ReminderHoursBeforeSlot, booking.Id);
             }
         }
 
-        var reminder2 = slotStartUtc.AddHours(-2);
+        var reminder2 = slotStartUtc.AddHours(-TimeConstants.ShortReminderHoursBeforeSlot);
         if (reminder2 > DateTime.UtcNow)
         {
             try
             {
                 await _backgroundJobService.ScheduleAsync(
-                    serviceProvider => SendBookingReminderViaServiceProvider(serviceProvider, email, phoneNumber, booking, 2),
+                    serviceProvider => SendBookingReminderViaServiceProvider(serviceProvider, email, phoneNumber, booking, TimeConstants.ShortReminderHoursBeforeSlot),
                     new DateTimeOffset(reminder2, TimeSpan.Zero));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Błąd podczas planowania przypomnienia 2h dla rezerwacji {BookingId}", booking.Id);
+                _logger.LogError(ex, "Błąd podczas planowania przypomnienia {Hours}h dla rezerwacji {BookingId}", TimeConstants.ShortReminderHoursBeforeSlot, booking.Id);
             }
         }
     }

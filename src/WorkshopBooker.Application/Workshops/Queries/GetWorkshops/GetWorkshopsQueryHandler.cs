@@ -23,11 +23,12 @@ public class GetWorkshopsQueryHandler : IRequestHandler<GetWorkshopsQuery, List<
         // Filtrujemy po SearchTerm, jeśli został podany
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
         {
-            var searchTerm = request.SearchTerm.ToLower();
+            // ✅ POPRAWKA: Używamy EF.Functions.ILike dla case-insensitive search w bazie danych
+            var searchTerm = request.SearchTerm;
             query = query.Where(w => 
-                w.Name.ToLower().Contains(searchTerm) || 
-                w.Description.ToLower().Contains(searchTerm) ||
-                (w.Address != null && w.Address.ToLower().Contains(searchTerm))
+                EF.Functions.ILike(w.Name, $"%{searchTerm}%") || 
+                EF.Functions.ILike(w.Description, $"%{searchTerm}%") ||
+                (w.Address != null && EF.Functions.ILike(w.Address, $"%{searchTerm}%"))
             );
         }
         
