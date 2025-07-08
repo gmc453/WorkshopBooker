@@ -2,11 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, TrendingUp, Calendar, Download, FileText, Users, Target } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Calendar, Download, FileText, Users, Target, Search, Keyboard } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import jsPDF from 'jspdf';
 import { useMyWorkshops } from '../hooks/useMyWorkshops';
+import { useDebounce } from '../hooks/useDebounce';
+import { exportToExcel, exportToPowerBI, shareReport } from '../utils/exportUtils';
+import { KeyboardShortcuts } from '../components/analytics/KeyboardShortcuts';
 
 import { OverviewTab } from '../components/analytics/OverviewTab';
 import { CustomersTab } from '../components/analytics/CustomersTab';
@@ -58,6 +61,9 @@ export default function AnalyticsPage() {
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState('30'); // dni
   const [activeTab, setActiveTab] = useState<'overview' | 'customers' | 'predictions' | 'seasonal'>('overview');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   useEffect(() => {
     if (workshopId) {
@@ -87,7 +93,19 @@ export default function AnalyticsPage() {
           case '4': setActiveTab('seasonal'); break;
           case 'e': exportToCSV(); break;
           case 'r': fetchAnalytics(); break;
+          case 'f': 
+            e.preventDefault();
+            document.getElementById('analytics-search')?.focus();
+            break;
+          case '/':
+            e.preventDefault();
+            setShowKeyboardShortcuts(true);
+            break;
         }
+      }
+      if (e.key === 'F1') {
+        e.preventDefault();
+        setShowKeyboardShortcuts(true);
       }
     };
 
@@ -202,6 +220,86 @@ export default function AnalyticsPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleExportToExcel = () => {
+    if (!analytics) return;
+
+    const exportData = {
+      'KPI': [
+        { 'Metryka': 'Przychody', 'Wartość': analytics.monthlyRevenue, 'Wzrost': analytics.revenueGrowth },
+        { 'Metryka': 'Rezerwacje', 'Wartość': analytics.monthlyBookings, 'Wzrost': analytics.bookingsGrowth },
+        { 'Metryka': 'Średnia ocena', 'Wartość': analytics.averageRating, 'Recenzje': analytics.totalReviews },
+        { 'Metryka': 'Średni czas usługi', 'Wartość': analytics.averageServiceTime, 'Jednostka': 'godziny' }
+      ],
+      'Popularne usługi': analytics.serviceDistribution.map(service => ({
+        'Nazwa usługi': service.serviceName,
+        'Rezerwacje': service.bookingCount,
+        'Przychody': service.totalRevenue,
+        'Procent': service.percentage,
+        'Średnia ocena': service.averageRating
+      })),
+      'Popularne godziny': analytics.popularTimeSlots.map(slot => ({
+        'Godzina': slot.timeSlot,
+        'Rezerwacje': slot.bookingCount,
+        'Wykorzystanie': slot.utilizationRate
+      })),
+      'Trend przychodów': analytics.revenueOverTime.map(point => ({
+        'Data': new Date(point.date).toLocaleDateString('pl-PL'),
+        'Przychody': point.revenue,
+        'Rezerwacje': point.bookings
+      }))
+    };
+
+    exportToExcel(exportData, `raport-${analytics.workshopName}-${timeRange}dni`);
+  };
+
+  const handleExportToPowerBI = () => {
+    if (!analytics) return;
+
+    const powerBIData = {
+      workshop: {
+        id: analytics.workshopId,
+        name: analytics.workshopName
+      },
+      period: {
+        days: timeRange,
+        startDate: getStartDate(),
+        endDate: new Date().toISOString()
+      },
+      kpi: {
+        revenue: analytics.monthlyRevenue,
+        bookings: analytics.monthlyBookings,
+        averageRating: analytics.averageRating,
+        totalReviews: analytics.totalReviews,
+        averageServiceTime: analytics.averageServiceTime,
+        revenueGrowth: analytics.revenueGrowth,
+        bookingsGrowth: analytics.bookingsGrowth
+      },
+      services: analytics.serviceDistribution,
+      timeSlots: analytics.popularTimeSlots,
+      revenueTrend: analytics.revenueOverTime
+    };
+
+    exportToPowerBI(powerBIData, `powerbi-${analytics.workshopName}-${timeRange}dni`);
+  };
+
+  const shareAnalyticsReport = () => {
+    if (!analytics) return;
+
+    const reportData = {
+      workshop: analytics.workshopName,
+      period: `${timeRange} dni`,
+      kpi: {
+        revenue: formatCurrency(analytics.monthlyRevenue),
+        bookings: analytics.monthlyBookings,
+        rating: safeNumber(analytics.averageRating).toFixed(1)
+      },
+      topServices: analytics.serviceDistribution.slice(0, 3),
+      topTimeSlots: analytics.popularTimeSlots.slice(0, 3)
+    };
+
+    shareReport(reportData, `Raport ${analytics.workshopName}`);
   };
 
   const exportToPDF = () => {
@@ -329,6 +427,21 @@ export default function AnalyticsPage() {
               </div>
             </div>
             
+            {/* Search Input */}
+            <div className="flex-1 max-w-md mx-8">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  id="analytics-search"
+                  type="text"
+                  placeholder="Wyszukaj w analityce... (Ctrl+F)"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                />
+              </div>
+            </div>
+
             {/* Workshop Switcher and Controls */}
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
@@ -376,11 +489,40 @@ export default function AnalyticsPage() {
                   <span>CSV</span>
                 </button>
                 <button
+                  onClick={handleExportToExcel}
+                  className="flex items-center space-x-1 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>Excel</span>
+                </button>
+                <button
+                  onClick={handleExportToPowerBI}
+                  className="flex items-center space-x-1 px-3 py-1 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>PowerBI</span>
+                </button>
+                <button
+                  onClick={shareAnalyticsReport}
+                  className="flex items-center space-x-1 px-3 py-1 bg-orange-600 text-white rounded-md hover:bg-orange-700 text-sm"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>Udostępnij</span>
+                </button>
+                <button
                   onClick={exportToPDF}
                   className="flex items-center space-x-1 px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
                 >
                   <FileText className="w-4 h-4" />
                   <span>PDF</span>
+                </button>
+                <button
+                  onClick={() => setShowKeyboardShortcuts(true)}
+                  className="flex items-center space-x-1 px-3 py-1 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm"
+                  title="Skróty klawiszowe (Ctrl+/)"
+                >
+                  <Keyboard className="w-4 h-4" />
+                  <span>Skróty</span>
                 </button>
               </div>
             </div>
@@ -422,6 +564,12 @@ export default function AnalyticsPage() {
         {activeTab === 'predictions' && workshopId && <PredictionsTab workshopId={workshopId} />}
         {activeTab === 'seasonal' && workshopId && <SeasonalTab workshopId={workshopId} />}
       </div>
+
+      {/* Keyboard Shortcuts Modal */}
+      <KeyboardShortcuts 
+        isOpen={showKeyboardShortcuts} 
+        onClose={() => setShowKeyboardShortcuts(false)} 
+      />
     </div>
   );
 }

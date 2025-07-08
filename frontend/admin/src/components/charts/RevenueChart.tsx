@@ -55,4 +55,6 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ data, title }) => {
   };
 
   return <Line data={chartData} options={options} />;
-}; 
+};
+
+export default RevenueChart; 

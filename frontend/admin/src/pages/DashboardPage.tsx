@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import BookingList from '../components/BookingList'
 import Header from '../components/Header'
+import WorkshopAnalyticsCard from '../components/WorkshopAnalyticsCard'
 import '../App.css'
 import type { FC } from 'react'
 import { useSmartQuery } from '../hooks/useSmartQuery'
@@ -166,41 +167,30 @@ const DashboardPage: FC = () => {
             </div>
           </Link>
           {workshops && workshops.length > 0 && (
-            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
+            <div className="bg-gradient-to-br from-purple-50 to-indigo-100 p-6 rounded-xl border border-purple-200 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
-                  <div className="bg-purple-100 rounded-full p-3 mr-4 text-purple-600">
-                    <TrendingUp className="h-6 w-6" />
+                  <div className="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full p-3 mr-4">
+                    <TrendingUp className="h-7 w-7 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-medium">Analityka</h3>
-                    <p className="text-sm text-gray-500">Przegląd wyników</p>
+                    <h3 className="text-lg font-semibold text-gray-900">📊 Analityka Biznesowa</h3>
+                    <p className="text-sm text-gray-600">Szczegółowe raporty i KPI</p>
                   </div>
                 </div>
                 <Link 
                   to="/analytics/global" 
-                  className="text-xs bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md"
                 >
-                  Wszystkie →
+                  🌍 Globalna →
                 </Link>
               </div>
               
-              <div className="space-y-2">
-                {workshops.slice(0, 3).map((workshop: any) => (
-                  <Link
-                    key={workshop.id}
-                    to={`/analytics/${workshop.id}`}
-                    className="flex items-center justify-between p-2 rounded hover:bg-gray-50 border"
-                  >
-                    <span className="font-medium">{workshop.name}</span>
-                    <span className="text-xs text-gray-500">📊 Zobacz</span>
-                  </Link>
+              {/* Grid warsztatów z quick stats */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {workshops.slice(0, 6).map((workshop: any) => (
+                  <WorkshopAnalyticsCard key={workshop.id} workshop={workshop} />
                 ))}
-                {workshops.length > 3 && (
-                  <p className="text-xs text-gray-500 pt-2">
-                    +{workshops.length - 3} więcej warsztatów
-                  </p>
-                )}
               </div>
             </div>
           )}
