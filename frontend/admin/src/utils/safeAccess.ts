@@ -88,6 +88,23 @@ export function safeFormatDate(date: any, format: string = 'dd.MM.yyyy HH:mm'): 
  * Bezpiecznie formatuje cenę
  */
 export function safeFormatPrice(price: any, currency: string = 'PLN'): string {
+  // Jeśli price jest już liczbą, użyj jej bezpośrednio
+  if (typeof price === 'number') {
+    return `${price.toFixed(2)} ${currency}`;
+  }
+  
+  // Jeśli price jest null/undefined, zwróć 0
+  if (price == null) {
+    return `0.00 ${currency}`;
+  }
+  
+  // Jeśli price jest stringiem, spróbuj przekonwertować na liczbę
+  if (typeof price === 'string') {
+    const numPrice = parseFloat(price);
+    return isNaN(numPrice) ? `0.00 ${currency}` : `${numPrice.toFixed(2)} ${currency}`;
+  }
+  
+  // Dla obiektów użyj safeGetNumber z pustą ścieżką
   const numPrice = safeGetNumber(price, '', 0);
   return `${numPrice.toFixed(2)} ${currency}`;
 }
@@ -96,6 +113,48 @@ export function safeFormatPrice(price: any, currency: string = 'PLN'): string {
  * Bezpiecznie formatuje czas trwania w minutach
  */
 export function safeFormatDuration(minutes: any): string {
+  // Jeśli minutes jest już liczbą, użyj jej bezpośrednio
+  if (typeof minutes === 'number') {
+    const numMinutes = minutes;
+    if (numMinutes < 60) {
+      return `${numMinutes} min`;
+    }
+    
+    const hours = Math.floor(numMinutes / 60);
+    const remainingMinutes = numMinutes % 60;
+    
+    if (remainingMinutes === 0) {
+      return `${hours} h`;
+    }
+    
+    return `${hours} h ${remainingMinutes} min`;
+  }
+  
+  // Jeśli minutes jest null/undefined, zwróć 0 min
+  if (minutes == null) {
+    return '0 min';
+  }
+  
+  // Jeśli minutes jest stringiem, spróbuj przekonwertować na liczbę
+  if (typeof minutes === 'string') {
+    const numMinutes = parseInt(minutes, 10);
+    if (isNaN(numMinutes)) return '0 min';
+    
+    if (numMinutes < 60) {
+      return `${numMinutes} min`;
+    }
+    
+    const hours = Math.floor(numMinutes / 60);
+    const remainingMinutes = numMinutes % 60;
+    
+    if (remainingMinutes === 0) {
+      return `${hours} h`;
+    }
+    
+    return `${hours} h ${remainingMinutes} min`;
+  }
+  
+  // Dla obiektów użyj safeGetNumber z pustą ścieżką
   const numMinutes = safeGetNumber(minutes, '', 0);
   if (numMinutes < 60) {
     return `${numMinutes} min`;

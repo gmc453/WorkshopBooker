@@ -53,7 +53,7 @@ public abstract class BaseValidationHandler
 
         if (workshop.UserId != currentUserId)
         {
-            throw new UnauthorizedAccessException(errorMessage);
+            throw new WorkshopBooker.Application.Common.Exceptions.UnauthorizedAccessException(errorMessage);
         }
     }
 
@@ -78,7 +78,7 @@ public abstract class BaseValidationHandler
 
         if (booking.UserId != currentUserId)
         {
-            throw new UnauthorizedAccessException(errorMessage);
+            throw new WorkshopBooker.Application.Common.Exceptions.UnauthorizedAccessException(errorMessage);
         }
     }
 
@@ -104,7 +104,7 @@ public abstract class BaseValidationHandler
 
         if (service.Workshop.UserId != currentUserId)
         {
-            throw new UnauthorizedAccessException(errorMessage);
+            throw new WorkshopBooker.Application.Common.Exceptions.UnauthorizedAccessException(errorMessage);
         }
     }
 } 
