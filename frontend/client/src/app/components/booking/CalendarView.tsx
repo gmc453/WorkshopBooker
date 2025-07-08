@@ -1,3 +1,5 @@
+"use client";
+
 import React from 'react';
 import { Calendar, Clock, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Slot } from '../../../hooks/useBookingFlow';
