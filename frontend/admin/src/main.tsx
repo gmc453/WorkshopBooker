@@ -10,6 +10,7 @@ import DashboardPage from './pages/DashboardPage'
 import LoginPage from './pages/LoginPage'
 import SlotsPage from './pages/SlotsPage/index'
 import AnalyticsPage from './pages/AnalyticsPage'
+import GlobalAnalyticsPage from './pages/GlobalAnalyticsPage'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -39,6 +40,14 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <AnalyticsPage />
+      </ProtectedRoute>
+    )
+  },
+  {
+    path: '/analytics/global',
+    element: (
+      <ProtectedRoute>
+        <GlobalAnalyticsPage />
       </ProtectedRoute>
     )
   },
