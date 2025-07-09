@@ -42,6 +42,7 @@ public class GetBookingsForWorkshopQueryHandler : IRequestHandler<GetBookingsFor
         var bookings = await _context.Bookings
             .Where(b => b.Service.WorkshopId == request.WorkshopId)
             .Include(b => b.Service)
+            .Include(b => b.Service.Workshop)
             .Include(b => b.Slot)
             .Include(b => b.User) // Dołączamy użytkownika żeby wyświetlić jego dane
             .ToListAsync(cancellationToken);
