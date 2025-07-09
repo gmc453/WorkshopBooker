@@ -1,13 +1,34 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import type { FC } from 'react'
-import { Calendar, Clock, CreditCard, CheckCircle, AlertCircle, XCircle, Loader2, User, Building, X } from 'lucide-react'
+import { Calendar, Clock, CheckCircle, AlertCircle, XCircle, Loader2, User, Building, X, ChevronLeft, ChevronRight, Info } from 'lucide-react'
 import { useWorkshopBookings } from '../hooks/useWorkshopBookings'
-import { useConfirmBooking } from '../hooks/useConfirmBooking'
-import { useCancelBooking } from '../hooks/useCancelBooking'
-import { useMyBookings } from '../hooks/useMyBookings'
+import { useMyWorkshopBookings } from '../hooks/useMyWorkshopBookings'
 import { useMyWorkshops } from '../hooks/useMyWorkshops'
+import { Link } from 'react-router-dom'
 
 import type { Booking } from '../types/booking'
+
+// Komponent statusu rezerwacji
+const BookingStatusBadge: FC<{ statusId: string | number }> = ({ statusId }) => {
+  const getStatusConfig = (statusId: string | number) => {
+    switch (statusId.toString()) {
+      case '0': return { label: 'Oczekująca', bgColor: 'bg-yellow-100', textColor: 'text-yellow-800', icon: <Clock className="w-3 h-3 mr-1" /> };
+      case '1': return { label: 'Potwierdzona', bgColor: 'bg-green-100', textColor: 'text-green-800', icon: <CheckCircle className="w-3 h-3 mr-1" /> };
+      case '2': return { label: 'Zakończona', bgColor: 'bg-blue-100', textColor: 'text-blue-800', icon: <CheckCircle className="w-3 h-3 mr-1" /> };
+      case '3': return { label: 'Anulowana', bgColor: 'bg-red-100', textColor: 'text-red-800', icon: <XCircle className="w-3 h-3 mr-1" /> };
+      default: return { label: 'Nieznany', bgColor: 'bg-gray-100', textColor: 'text-gray-800', icon: <AlertCircle className="w-3 h-3 mr-1" /> };
+    }
+  };
+
+  const { label, bgColor, textColor, icon } = getStatusConfig(statusId);
+
+  return (
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${bgColor} ${textColor}`}>
+      {icon}
+      {label}
+    </span>
+  );
+};
 
 // Typ powiadomienia
 type Notification = {
@@ -21,12 +42,18 @@ type BookingListProps = {
   workshopId: string | null
   statusFilter?: string
   searchQuery?: string
+  onConfirm?: (bookingId: string) => void
+  onComplete?: (bookingId: string) => void
+  onCancel?: (bookingId: string) => void
 }
 
 const BookingList: FC<BookingListProps> = ({ 
   workshopId, 
   statusFilter = 'all', 
-  searchQuery = '' 
+  searchQuery = '',
+  onConfirm,
+  onComplete,
+  onCancel
 }) => {
   // Stan dla powiadomień
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -58,22 +85,22 @@ const BookingList: FC<BookingListProps> = ({
   // Pobieramy rezerwacje w zależności od tego czy wybrano konkretny warsztat
   const { data: workshopBookings, isLoading: isLoadingWorkshopBookings, isError: isWorkshopBookingsError, refetch: refetchWorkshopBookings } = 
     useWorkshopBookings(workshopId)
-  const { data: allBookings, isLoading: isLoadingAllBookings, isError: isAllBookingsError, refetch: refetchAllBookings } = 
-    useMyBookings()
+  const { data: myWorkshopBookings, isLoading: isLoadingMyWorkshopBookings, isError: isMyWorkshopBookingsError, refetch: refetchMyWorkshopBookings } = 
+    useMyWorkshopBookings()
     
   // Stan ładowania i błędów
-  const isLoading = workshopId ? isLoadingWorkshopBookings : isLoadingAllBookings
-  const isError = workshopId ? isWorkshopBookingsError : isAllBookingsError
+  const isLoading = workshopId ? isLoadingWorkshopBookings : isLoadingMyWorkshopBookings
+  const isError = workshopId ? isWorkshopBookingsError : isMyWorkshopBookingsError
   
   // Określamy, które dane mamy używać
-  const bookingsData = workshopId ? workshopBookings : allBookings
+  const bookingsData = workshopId ? workshopBookings : myWorkshopBookings
   
   // Funkcja odświeżenia listy rezerwacji
   const refreshBookings = () => {
     if (workshopId) {
       refetchWorkshopBookings();
     } else {
-      refetchAllBookings();
+      refetchMyWorkshopBookings();
     }
   };
   
@@ -111,75 +138,215 @@ const BookingList: FC<BookingListProps> = ({
     })
   }, [bookingsData, statusFilter, searchQuery])
 
-  // Obsługa potwierdzania rezerwacji z informacją zwrotną
-  const { mutate: confirmBookingMutation, isPending: isConfirmingGlobal } = useConfirmBooking(workshopId || 'default')
-  const confirmBooking = (bookingId: string, serviceName?: string) => {
-    // Ustawiamy flagę przetwarzania dla tej rezerwacji
-    setProcessingBookings(prev => ({ ...prev, [bookingId]: true }));
+  // Stan dla paginacji
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+  
+  // Reset strony przy zmianie filtrów
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [workshopId, statusFilter, searchQuery]);
+
+  // Paginacja rezerwacji
+  const paginatedBookings = useMemo(() => {
+    if (!filteredBookings) return [];
     
-    confirmBookingMutation(bookingId, {
-      onSuccess: () => {
-        // Dodaj powiadomienie o sukcesie
-        addNotification({
-          type: 'success',
-          message: `Rezerwacja ${serviceName ? `"${serviceName}"` : ''} została potwierdzona`,
-          bookingId
-        });
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    
+    return filteredBookings.slice(startIndex, endIndex);
+  }, [filteredBookings, currentPage, itemsPerPage]);
+  
+  // Obliczanie całkowitej liczby stron
+  const totalPages = useMemo(() => {
+    if (!filteredBookings) return 0;
+    return Math.ceil(filteredBookings.length / itemsPerPage);
+  }, [filteredBookings, itemsPerPage]);
+  
+  // Nawigacja paginacji
+  const goToPage = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+  };
+  
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
+  
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
+  
+  // Komponent paginacji
+  const Pagination = () => {
+    if (totalPages <= 1) return null;
+    
+    // Generowanie przycisków numerycznych stron
+    const pageNumbers = [];
+    const maxVisiblePages = 5;
+    
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    // Dostosowanie, jeśli jesteśmy blisko końca
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(i);
+    }
+    
+    return (
+      <div className="flex items-center justify-between mt-6 border-t border-gray-200 pt-4">
+        <div className="flex items-center text-sm text-gray-600">
+          <span>Pokazuje {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredBookings.length)} z {filteredBookings.length} rezerwacji</span>
+          <select 
+            value={itemsPerPage}
+            onChange={(e) => setItemsPerPage(Number(e.target.value))}
+            className="ml-2 px-2 py-1 border border-gray-200 rounded text-sm"
+          >
+            <option value={5}>5 / stronę</option>
+            <option value={10}>10 / stronę</option>
+            <option value={20}>20 / stronę</option>
+            <option value={50}>50 / stronę</option>
+          </select>
+        </div>
         
-        // Usuwamy flagę przetwarzania
-        setProcessingBookings(prev => ({ ...prev, [bookingId]: false }));
-        
-        // Odświeżamy listę rezerwacji po potwierdzeniu
-        setTimeout(() => {
-          refreshBookings();
-        }, 500);
-      },
-      onError: () => {
-        addNotification({
-          type: 'error',
-          message: 'Nie udało się potwierdzić rezerwacji. Spróbuj ponownie.',
-          bookingId
-        });
-        
-        // Usuwamy flagę przetwarzania
-        setProcessingBookings(prev => ({ ...prev, [bookingId]: false }));
-      }
-    });
+        <div className="flex items-center space-x-1">
+          <button
+            onClick={goToPreviousPage}
+            disabled={currentPage === 1}
+            className={`p-2 rounded-md ${
+              currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100'
+            }`}
+            aria-label="Poprzednia strona"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          
+          {startPage > 1 && (
+            <>
+              <button
+                onClick={() => goToPage(1)}
+                className="px-3 py-1 rounded-md hover:bg-gray-100"
+              >
+                1
+              </button>
+              {startPage > 2 && <span className="px-1">...</span>}
+            </>
+          )}
+          
+          {pageNumbers.map(page => (
+            <button
+              key={page}
+              onClick={() => goToPage(page)}
+              className={`px-3 py-1 rounded-md ${
+                currentPage === page 
+                  ? 'bg-blue-600 text-white' 
+                  : 'hover:bg-gray-100'
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+          
+          {endPage < totalPages && (
+            <>
+              {endPage < totalPages - 1 && <span className="px-1">...</span>}
+              <button
+                onClick={() => goToPage(totalPages)}
+                className="px-3 py-1 rounded-md hover:bg-gray-100"
+              >
+                {totalPages}
+              </button>
+            </>
+          )}
+          
+          <button
+            onClick={goToNextPage}
+            disabled={currentPage === totalPages}
+            className={`p-2 rounded-md ${
+              currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100'
+            }`}
+            aria-label="Następna strona"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    );
   };
 
-  // Obsługa anulowania rezerwacji z informacją zwrotną
-  const { mutate: cancelBookingMutation, isPending: isCancellingGlobal } = useCancelBooking(workshopId || 'default')
-  const cancelBooking = (bookingId: string, serviceName?: string) => {
-    // Ustawiamy flagę przetwarzania dla tej rezerwacji
-    setProcessingBookings(prev => ({ ...prev, [bookingId]: true }));
-    
-    cancelBookingMutation(bookingId, {
-      onSuccess: () => {
+  // Nowe funkcje do zarządzania statusem rezerwacji (przekazane jako props)
+  const handleConfirmBooking = async (bookingId: string) => {
+    if (onConfirm) {
+      setProcessingBookings(prev => ({ ...prev, [bookingId]: true }));
+      try {
+        await onConfirm(bookingId);
         addNotification({
           type: 'success',
-          message: `Rezerwacja ${serviceName ? `"${serviceName}"` : ''} została anulowana`,
+          message: 'Rezerwacja została potwierdzona',
           bookingId
         });
-        
-        // Usuwamy flagę przetwarzania
-        setProcessingBookings(prev => ({ ...prev, [bookingId]: false }));
-        
-        // Odświeżamy listę rezerwacji po anulowaniu
-        setTimeout(() => {
-          refreshBookings();
-        }, 500);
-      },
-      onError: () => {
+      } catch (error) {
         addNotification({
           type: 'error',
-          message: 'Nie udało się anulować rezerwacji. Spróbuj ponownie.',
+          message: 'Nie udało się potwierdzić rezerwacji',
           bookingId
         });
-        
-        // Usuwamy flagę przetwarzania
+      } finally {
         setProcessingBookings(prev => ({ ...prev, [bookingId]: false }));
       }
-    });
+    }
+  };
+
+  const handleCompleteBooking = async (bookingId: string) => {
+    if (onComplete) {
+      setProcessingBookings(prev => ({ ...prev, [bookingId]: true }));
+      try {
+        await onComplete(bookingId);
+        addNotification({
+          type: 'success',
+          message: 'Rezerwacja została zakończona',
+          bookingId
+        });
+      } catch (error) {
+        addNotification({
+          type: 'error',
+          message: 'Nie udało się zakończyć rezerwacji',
+          bookingId
+        });
+      } finally {
+        setProcessingBookings(prev => ({ ...prev, [bookingId]: false }));
+      }
+    }
+  };
+
+  const handleCancelBooking = async (bookingId: string) => {
+    if (onCancel) {
+      setProcessingBookings(prev => ({ ...prev, [bookingId]: true }));
+      try {
+        await onCancel(bookingId);
+        addNotification({
+          type: 'success',
+          message: 'Rezerwacja została anulowana',
+          bookingId
+        });
+      } catch (error) {
+        addNotification({
+          type: 'error',
+          message: 'Nie udało się anulować rezerwacji',
+          bookingId
+        });
+      } finally {
+        setProcessingBookings(prev => ({ ...prev, [bookingId]: false }));
+      }
+    }
   };
 
   const getStatusIcon = (status: string | number) => {
@@ -258,214 +425,201 @@ const BookingList: FC<BookingListProps> = ({
     }).format(price)
   }
 
-  // Znajdź warsztat dla rezerwacji
   const getWorkshopName = (booking: Booking) => {
-    if (!workshops || workshopId) return null;
-    // Zakładamy, że booking może mieć property workshopName lub workshopId
-    if (booking.workshopName) return booking.workshopName;
-    if (booking.workshopId) {
-      const workshop = workshops.find(w => w.id === booking.workshopId);
-      return workshop?.name || 'Nieznany warsztat';
+    if (workshopId) {
+      return selectedWorkshopName
     }
-    return 'Nieznany warsztat';
-  };
+    return booking.workshopName || 'Nieznany warsztat'
+  }
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-12">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="w-12 h-12 rounded-full border-4 border-t-primary border-gray-200 dark:border-gray-700 animate-spin"></div>
-          <p className="text-gray-600 dark:text-gray-300 font-medium">Ładowanie rezerwacji...</p>
-        </div>
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <span className="ml-2 text-gray-600">Ładowanie rezerwacji...</span>
       </div>
     )
   }
 
   if (isError) {
     return (
-      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-6">
-        <div className="flex items-center space-x-3">
-          <XCircle className="w-6 h-6 text-danger" />
-          <div>
-            <h3 className="text-red-800 dark:text-red-400 font-semibold">Wystąpił błąd</h3>
-            <p className="text-red-600 dark:text-red-400">Nie udało się pobrać listy rezerwacji. Spróbuj ponownie.</p>
-          </div>
-        </div>
+      <div className="text-center p-8">
+        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Błąd ładowania</h3>
+        <p className="text-gray-600 mb-4">Nie udało się załadować listy rezerwacji</p>
+        <button 
+          onClick={refreshBookings}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Spróbuj ponownie
+        </button>
       </div>
     )
   }
 
   if (!filteredBookings || filteredBookings.length === 0) {
     return (
-      <div className="text-center py-16 bg-gray-50 dark:bg-gray-800/30 rounded-lg border border-gray-200 dark:border-gray-700">
-        <Calendar className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Brak rezerwacji</h3>
-        <p className="text-gray-500 dark:text-gray-400">
+      <div className="text-center p-8">
+        <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Brak rezerwacji</h3>
+        <p className="text-gray-600">
           {searchQuery || statusFilter !== 'all' 
-            ? 'Nie znaleziono rezerwacji spełniających kryteria wyszukiwania.'
-            : workshopId 
-              ? 'Nie ma jeszcze żadnych rezerwacji w tym warsztacie.' 
-              : 'Nie ma jeszcze żadnych rezerwacji.'}
+            ? 'Nie znaleziono rezerwacji spełniających kryteria wyszukiwania'
+            : 'Nie ma jeszcze żadnych rezerwacji'
+          }
         </p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6 relative">
-      {/* System powiadomień */}
-      <div className="fixed top-5 right-5 z-50 space-y-3" style={{ maxWidth: '350px' }}>
-        {notifications.map((notification) => (
-          <div 
-            key={notification.id}
-            className={`flex items-center justify-between p-4 rounded-lg shadow-lg animate-slideIn ${
-              notification.type === 'success' ? 'bg-green-100 text-green-800 border-l-4 border-green-500 dark:bg-green-900/50 dark:text-green-300' :
-              notification.type === 'error' ? 'bg-red-100 text-red-800 border-l-4 border-red-500 dark:bg-red-900/50 dark:text-red-300' :
-              'bg-blue-100 text-blue-800 border-l-4 border-blue-500 dark:bg-blue-900/50 dark:text-blue-300'
-            }`}
-          >
-            <div className="flex items-center space-x-3">
-              {notification.type === 'success' && <CheckCircle className="w-5 h-5" />}
-              {notification.type === 'error' && <XCircle className="w-5 h-5" />}
-              {notification.type === 'info' && <AlertCircle className="w-5 h-5" />}
-              <span>{notification.message}</span>
-            </div>
-            <button 
-              onClick={() => removeNotification(notification.id)}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+    <div className="space-y-4">
+      {/* Powiadomienia */}
+      {notifications.length > 0 && (
+        <div className="fixed top-4 right-4 z-50 space-y-2">
+          {notifications.map((notification) => (
+            <div
+              key={notification.id}
+              className={`p-4 rounded-lg shadow-lg border-l-4 ${
+                notification.type === 'success'
+                  ? 'bg-green-50 border-green-400 text-green-800'
+                  : notification.type === 'error'
+                  ? 'bg-red-50 border-red-400 text-red-800'
+                  : 'bg-blue-50 border-blue-400 text-blue-800'
+              }`}
             >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        ))}
-      </div>
-
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
-            {workshopId ? `Rezerwacje: ${selectedWorkshopName || 'Wybrany warsztat'}` : 'Wszystkie rezerwacje'}
-          </h2>
-          <div className="flex items-center text-gray-600 dark:text-gray-300 space-x-1">
-            <Calendar className="w-4 h-4" />
-            <span>Znaleziono {filteredBookings.length} rezerwacji</span>
-          </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  {notification.type === 'success' && <CheckCircle className="w-5 h-5 mr-2" />}
+                  {notification.type === 'error' && <XCircle className="w-5 h-5 mr-2" />}
+                  {notification.type === 'info' && <AlertCircle className="w-5 h-5 mr-2" />}
+                  <span className="font-medium">{notification.message}</span>
+                </div>
+                <button
+                  onClick={() => removeNotification(notification.id)}
+                  className="ml-4 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
-        
-        <button 
-          onClick={refreshBookings}
-          className="flex items-center gap-2 py-2 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-            <path d="M21 3v5h-5"></path>
-            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
-            <path d="M3 21v-5h5"></path>
-          </svg>
-          <span>Odśwież</span>
-        </button>
-      </div>
-      
-      <div className="grid gap-5">
-        {filteredBookings.map((booking: Booking) => {
+      )}
+
+      {/* Lista rezerwacji */}
+      <div className="space-y-4">
+        {paginatedBookings.map((booking) => {
           const { date, time } = formatDateTime(booking.slotStartTime, booking.slotEndTime)
-          const statusValue = typeof booking.status === 'number' ? booking.status : parseInt(booking.status);
-          const workshopName = getWorkshopName(booking);
-          
-          // Sprawdź, czy istnieje powiadomienie dla tej rezerwacji (animacja podświetlenia)
-          const hasNotification = notifications.some(n => n.bookingId === booking.id);
-          
-          // Sprawdź, czy ta rezerwacja jest obecnie przetwarzana
-          const isProcessing = processingBookings[booking.id];
+          const isProcessing = processingBookings[booking.id]
           
           return (
             <div
               key={booking.id}
-              className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-200 p-6 ${
-                hasNotification ? 'ring-2 ring-green-400 dark:ring-green-500 animate-pulse' : ''
-              } ${
-                isProcessing ? 'opacity-70' : ''
+              className={`bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-all duration-300 ${
+                isProcessing ? 'opacity-75' : ''
               }`}
             >
-              {isProcessing && (
-                <div className="absolute inset-0 bg-white/40 dark:bg-gray-800/40 flex items-center justify-center rounded-xl z-10">
-                  <div className="flex flex-col items-center gap-2 bg-white dark:bg-gray-700 p-4 rounded-lg shadow-lg">
-                    <div className="w-10 h-10 border-4 border-t-primary border-gray-200 dark:border-gray-600 rounded-full animate-spin"></div>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">Przetwarzanie...</p>
-                  </div>
-                </div>
-              )}
-              
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex flex-wrap items-center gap-3 mb-4">
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-                      {booking.serviceName}
-                    </h3>
-                    <span className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(booking.status)}`}>
-                      {getStatusIcon(booking.status)}
-                      <span className="ml-1">{getStatusText(booking.status)}</span>
-                    </span>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(booking.status)}`}>
+                        {getStatusIcon(booking.status)}
+                        <span className="ml-1">{getStatusText(booking.status)}</span>
+                      </span>
+                      <span className="text-sm text-gray-500">#{booking.id.slice(0, 8)}</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-semibold text-gray-900">
+                        {formatPrice(booking.servicePrice)}
+                      </p>
+                    </div>
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-300">
-                      <Calendar className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                      <span>{date}</span>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-300">
-                      <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                      <span>{time}</span>
-                    </div>
 
-                    <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-300">
-                      <User className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                      <span>{booking.userName || 'Brak danych użytkownika'}</span>
-                    </div>
-
-                    {!workshopId && workshopName && (
-                      <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-300">
-                        <Building className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                        <span>{workshopName}</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-1">{booking.serviceName}</h3>
+                      <div className="flex items-center text-sm text-gray-600 mb-2">
+                        <Building className="w-4 h-4 mr-1" />
+                        <span>{getWorkshopName(booking)}</span>
                       </div>
+                      {booking.userName && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <User className="w-4 h-4 mr-1" />
+                          <span>{booking.userName}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <div className="flex items-center text-sm text-gray-600 mb-1">
+                        <Calendar className="w-4 h-4 mr-1" />
+                        <span>{date}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Clock className="w-4 h-4 mr-1" />
+                        <span>{time}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2 ml-4">
+                  {/* Status badge */}
+                  <BookingStatusBadge statusId={booking.status} />
+                  
+                  {/* Action buttons */}
+                  <div className="flex space-x-2">
+                    {booking.status.toString() === '0' && onConfirm && (
+                      <button 
+                        onClick={() => handleConfirmBooking(booking.id)}
+                        disabled={isProcessing}
+                        className="p-1.5 bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Potwierdź rezerwację"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                      </button>
                     )}
+                    
+                    {booking.status.toString() === '1' && onComplete && (
+                      <button 
+                        onClick={() => handleCompleteBooking(booking.id)}
+                        disabled={isProcessing}
+                        className="p-1.5 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Zakończ rezerwację"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                      </button>
+                    )}
+                    
+                    {(booking.status.toString() === '0' || booking.status.toString() === '1') && onCancel && (
+                      <button 
+                        onClick={() => handleCancelBooking(booking.id)}
+                        disabled={isProcessing}
+                        className="p-1.5 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Anuluj rezerwację"
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </button>
+                    )}
+                    
+                    <Link 
+                      to={`/bookings/${booking.id}`}
+                      className="p-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+                      title="Szczegóły rezerwacji"
+                    >
+                      <Info className="w-4 h-4" />
+                    </Link>
                   </div>
                 </div>
-                
-                <div className="text-right">
-                  <div className="flex items-center justify-end space-x-2 text-lg font-bold text-primary">
-                    <CreditCard className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                    <span>{formatPrice(booking.servicePrice)}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-5 flex justify-end space-x-3">
-                {statusValue === 0 && (
-                  <button
-                    onClick={() => confirmBooking(booking.id, booking.serviceName)}
-                    disabled={isProcessing || isConfirmingGlobal || isCancellingGlobal}
-                    className="bg-success hover:bg-success-hover text-white py-2 px-4 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
-                  >
-                    {(isProcessing || (isConfirmingGlobal && processingBookings[booking.id])) && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
-                    <span>Potwierdź</span>
-                  </button>
-                )}
-                
-                {(statusValue === 0 || statusValue === 1) && (
-                  <button
-                    onClick={() => cancelBooking(booking.id, booking.serviceName)}
-                    disabled={isProcessing || isConfirmingGlobal || isCancellingGlobal}
-                    className="bg-danger hover:bg-danger-hover text-white py-2 px-4 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
-                  >
-                    {(isProcessing || (isCancellingGlobal && processingBookings[booking.id])) && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
-                    <span>Anuluj</span>
-                  </button>
-                )}
               </div>
             </div>
           )
         })}
+        
+        {/* Paginacja */}
+        <Pagination />
       </div>
     </div>
   )

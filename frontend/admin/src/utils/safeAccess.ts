@@ -171,6 +171,31 @@ export function safeFormatDuration(minutes: any): string {
 }
 
 /**
+ * Bezpiecznie formatuje procent
+ */
+export function safeFormatPercentage(value: any, decimals: number = 1): string {
+  // Jeśli value jest już liczbą, użyj jej bezpośrednio
+  if (typeof value === 'number') {
+    return `${value >= 0 ? '+' : ''}${value.toFixed(decimals)}%`;
+  }
+  
+  // Jeśli value jest null/undefined, zwróć 0%
+  if (value == null) {
+    return '0.0%';
+  }
+  
+  // Jeśli value jest stringiem, spróbuj przekonwertować na liczbę
+  if (typeof value === 'string') {
+    const numValue = parseFloat(value);
+    return isNaN(numValue) ? '0.0%' : `${numValue >= 0 ? '+' : ''}${numValue.toFixed(decimals)}%`;
+  }
+  
+  // Dla obiektów użyj safeGetNumber z pustą ścieżką
+  const numValue = safeGetNumber(value, '', 0);
+  return `${numValue >= 0 ? '+' : ''}${numValue.toFixed(decimals)}%`;
+}
+
+/**
  * Bezpiecznie sprawdza czy obiekt ma określoną właściwość
  */
 export function safeHas(obj: any, path: string): boolean {

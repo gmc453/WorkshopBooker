@@ -42,7 +42,9 @@ public class GetBookingsForWorkshopQueryHandler : IRequestHandler<GetBookingsFor
         var bookings = await _context.Bookings
             .Where(b => b.Service.WorkshopId == request.WorkshopId)
             .Include(b => b.Service)
+            .Include(b => b.Service.Workshop)
             .Include(b => b.Slot)
+            .Include(b => b.User) // Dołączamy użytkownika żeby wyświetlić jego dane
             .ToListAsync(cancellationToken);
 
         var bookingDtos = bookings.Select(b => new BookingDto
@@ -53,7 +55,12 @@ public class GetBookingsForWorkshopQueryHandler : IRequestHandler<GetBookingsFor
             Status = b.Status,
             ServiceId = b.ServiceId,
             ServiceName = b.Service?.Name ?? "Nieznana usługa",
-            ServicePrice = b.Service?.Price ?? 0
+            ServicePrice = b.Service?.Price ?? 0,
+            UserName = string.IsNullOrWhiteSpace($"{b.User?.FirstName ?? ""} {b.User?.LastName ?? ""}".Trim()) 
+                ? (b.User?.Email ?? "Nieznany użytkownik") 
+                : $"{b.User?.FirstName ?? ""} {b.User?.LastName ?? ""}".Trim(),
+            WorkshopId = b.Service?.WorkshopId.ToString(),
+            WorkshopName = b.Service?.Workshop?.Name ?? "Nieznany warsztat"
         }).ToList();
 
         return bookingDtos;
