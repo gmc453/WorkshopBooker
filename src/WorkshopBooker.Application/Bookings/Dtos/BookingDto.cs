@@ -12,4 +12,7 @@ public record BookingDto
     public Guid ServiceId { get; init; }
     public required string ServiceName { get; init; }
     public decimal ServicePrice { get; init; }
+    public string? UserName { get; init; }
+    public string? WorkshopId { get; init; }
+    public string? WorkshopName { get; init; }
 }

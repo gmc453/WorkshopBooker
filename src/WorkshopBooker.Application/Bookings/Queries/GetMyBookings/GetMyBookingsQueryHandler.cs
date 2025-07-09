@@ -29,6 +29,7 @@ public class GetMyBookingsQueryHandler : IRequestHandler<GetMyBookingsQuery, Lis
             .Where(b => b.UserId == userId.Value)
             .Include(b => b.Service)
             .Include(b => b.Slot)
+            .Include(b => b.Service.Workshop) // Dołączamy warsztat żeby wyświetlić jego nazwę
             .ToListAsync(cancellationToken);
 
         var bookingDtos = bookings.Select(b => new BookingDto
@@ -39,7 +40,9 @@ public class GetMyBookingsQueryHandler : IRequestHandler<GetMyBookingsQuery, Lis
             Status = b.Status,
             ServiceId = b.ServiceId,
             ServiceName = b.Service?.Name ?? "Nieznana usługa",
-            ServicePrice = b.Service?.Price ?? 0
+            ServicePrice = b.Service?.Price ?? 0,
+            WorkshopId = b.Service?.WorkshopId.ToString(),
+            WorkshopName = b.Service?.Workshop?.Name ?? "Nieznany warsztat"
         }).ToList();
 
         return bookingDtos;

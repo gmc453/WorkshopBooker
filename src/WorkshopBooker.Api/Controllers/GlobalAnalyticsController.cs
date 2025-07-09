@@ -35,6 +35,33 @@ public class GlobalAnalyticsController : ControllerBase
         return BadRequest(result.Error);
     }
 
+    [HttpGet("today-stats")]
+    public async Task<IActionResult> GetTodayStats()
+    {
+        var today = DateTime.UtcNow.Date;
+        var tomorrow = today.AddDays(1);
+
+        var query = new GetGlobalAnalyticsQuery(today, tomorrow);
+        var result = await _sender.Send(query);
+        
+        if (result.IsSuccess)
+        {
+            var todayStats = new
+            {
+                todaysBookings = result.Value.TotalBookings,
+                pendingBookings = result.Value.TopWorkshops?.Sum(w => w.Bookings) ?? 0, // Uproszczone - w rzeczywistości należałoby dodać filtrowanie po statusie
+                completedBookings = 0, // TODO: Dodać logikę dla zakończonych rezerwacji
+                canceledBookings = 0, // TODO: Dodać logikę dla anulowanych rezerwacji
+                weeklyRevenue = result.Value.TotalRevenue, // Tymczasowo używamy dzisiejszych przychodów
+                activeWorkshops = result.Value.TotalWorkshops,
+                avgRating = result.Value.AverageRating
+            };
+            return Ok(todayStats);
+        }
+        
+        return BadRequest(result.Error);
+    }
+
     [HttpGet("workshops-comparison")]
     public async Task<IActionResult> GetWorkshopsComparison([FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
     {
@@ -63,7 +90,7 @@ public class GlobalAnalyticsController : ControllerBase
         {
             var insights = new
             {
-                topPerformer = result.Value.TopWorkshops.FirstOrDefault()?.WorkshopName,
+                topPerformer = result.Value.TopWorkshops?.FirstOrDefault()?.WorkshopName,
                 revenueGrowth = result.Value.RevenueGrowth,
                 bookingsGrowth = result.Value.BookingsGrowth,
                 averageRating = result.Value.AverageRating,
@@ -89,15 +116,9 @@ public class GlobalAnalyticsController : ControllerBase
             recommendations.Add("Średnia ocena jest niska. Rozważ poprawę jakości usług i obsługi klienta.");
         }
 
-        if (analytics.TopWorkshops.Any(w => w.UtilizationRate < 50))
+        if (analytics.TopWorkshops?.Any(w => w.UtilizationRate < 50) == true)
         {
             recommendations.Add("Niektóre warsztaty mają niskie wykorzystanie. Zoptymalizuj dostępne sloty czasowe.");
-        }
-
-        if (analytics.TopWorkshops.Count > 0)
-        {
-            var topWorkshop = analytics.TopWorkshops.First();
-            recommendations.Add($"Warsztat '{topWorkshop.WorkshopName}' ma najlepsze wyniki. Rozważ zastosowanie podobnych strategii w innych warsztatach.");
         }
 
         return recommendations;

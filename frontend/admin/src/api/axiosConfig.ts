@@ -50,9 +50,8 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => {
     console.log(`Otrzymałem odpowiedź z: ${response.config.url}`, response)
-    // Tymczasowo wyłączamy handleSuccess aby sprawdzić czy to nie powoduje problemów
-    // return rateLimitHandler.handleSuccess(response)
-    return response
+    // Przywracamy handleSuccess aby rate limiting działał poprawnie
+    return rateLimitHandler.handleSuccess(response)
   },
   async (error) => {
     if (error.response?.status === 429) {

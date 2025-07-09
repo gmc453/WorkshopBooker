@@ -4,43 +4,41 @@ using WorkshopBooker.Application.Bookings.Dtos;
 using WorkshopBooker.Application.Common.Interfaces;
 using WorkshopBooker.Application.Common.Exceptions;
 
-namespace WorkshopBooker.Application.Bookings.Queries.GetBookingsForWorkshop;
+namespace WorkshopBooker.Application.Bookings.Queries.GetMyWorkshopBookings;
 
-public class GetBookingsForWorkshopQueryHandler : IRequestHandler<GetBookingsForWorkshopQuery, List<BookingDto>>
+public class GetMyWorkshopBookingsQueryHandler : IRequestHandler<GetMyWorkshopBookingsQuery, List<BookingDto>>
 {
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserProvider _currentUserProvider;
 
-    public GetBookingsForWorkshopQueryHandler(IApplicationDbContext context, ICurrentUserProvider currentUserProvider)
+    public GetMyWorkshopBookingsQueryHandler(IApplicationDbContext context, ICurrentUserProvider currentUserProvider)
     {
         _context = context;
         _currentUserProvider = currentUserProvider;
     }
 
-    public async Task<List<BookingDto>> Handle(GetBookingsForWorkshopQuery request, CancellationToken cancellationToken)
+    public async Task<List<BookingDto>> Handle(GetMyWorkshopBookingsQuery request, CancellationToken cancellationToken)
     {
-        // Sprawdź czy użytkownik jest zalogowany
-        if (_currentUserProvider.UserId is null)
+        var userId = _currentUserProvider.UserId;
+        if (userId is null)
         {
             throw new UnauthenticatedUserException();
         }
 
-        // Sprawdź czy warsztat istnieje i czy użytkownik jest jego właścicielem
-        var workshop = await _context.Workshops
-            .FirstOrDefaultAsync(w => w.Id == request.WorkshopId, cancellationToken);
+        // Pobierz wszystkie warsztaty użytkownika
+        var userWorkshopIds = await _context.Workshops
+            .Where(w => w.UserId == userId.Value)
+            .Select(w => w.Id)
+            .ToListAsync(cancellationToken);
 
-        if (workshop is null)
+        if (!userWorkshopIds.Any())
         {
-            throw new WorkshopNotFoundException();
+            return new List<BookingDto>();
         }
 
-        if (workshop.UserId != _currentUserProvider.UserId)
-        {
-            throw new WorkshopBooker.Application.Common.Exceptions.UnauthorizedAccessException("Brak uprawnień do przeglądania rezerwacji tego warsztatu");
-        }
-
+        // Pobierz wszystkie rezerwacje dla warsztatów użytkownika
         var bookings = await _context.Bookings
-            .Where(b => b.Service.WorkshopId == request.WorkshopId)
+            .Where(b => userWorkshopIds.Contains(b.Service.WorkshopId))
             .Include(b => b.Service)
             .Include(b => b.Slot)
             .Include(b => b.User) // Dołączamy użytkownika żeby wyświetlić jego dane
@@ -64,4 +62,4 @@ public class GetBookingsForWorkshopQueryHandler : IRequestHandler<GetBookingsFor
 
         return bookingDtos;
     }
-}
+} 

@@ -12,6 +12,16 @@ interface GlobalAnalyticsData {
   workshopComparison: WorkshopComparison[];
 }
 
+interface TodayStatsData {
+  todaysBookings: number;
+  pendingBookings: number;
+  completedBookings: number;
+  canceledBookings: number;
+  weeklyRevenue: number;
+  activeWorkshops: number;
+  avgRating: number;
+}
+
 interface WorkshopPerformance {
   workshopId: string;
   workshopName: string;
@@ -42,7 +52,29 @@ export const useGlobalAnalytics = (startDate?: string, endDate?: string) => {
       const response = await apiClient.get(`/api/analytics/global/overview?${params}`);
       return response.data as GlobalAnalyticsData;
     },
-    staleTime: 2 * 60 * 1000, // 2 minuty cache
+    staleTime: 5 * 60 * 1000, // 5 minut cache - zwiększamy aby zmniejszyć miganie
+    gcTime: 10 * 60 * 1000, // 10 minut garbage collection
+    refetchOnWindowFocus: false, // Wyłączamy refetch przy focusie okna
+    refetchOnMount: false, // Wyłączamy refetch przy montowaniu
+    refetchOnReconnect: false, // Wyłączamy refetch przy ponownym połączeniu
+    retry: 1, // Maksymalnie 1 retry
+    retryDelay: 1000, // 1 sekunda delay
+  });
+};
+
+export const useTodayStats = () => {
+  return useQuery({
+    queryKey: ['today-stats'],
+    queryFn: async () => {
+      const response = await apiClient.get('/api/analytics/global/today-stats');
+      return response.data as TodayStatsData;
+    },
+    staleTime: 1 * 60 * 1000, // 1 minuta cache - częściej odświeżane
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    retry: 1,
+    retryDelay: 1000,
   });
 };
 
@@ -53,5 +85,11 @@ export const useWorkshopsComparison = () => {
       const response = await apiClient.get('/api/analytics/global/workshops-comparison');
       return response.data;
     },
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    retry: 1,
+    retryDelay: 1000,
   });
 }; 

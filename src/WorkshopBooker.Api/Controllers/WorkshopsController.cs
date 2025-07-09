@@ -79,7 +79,7 @@ public class WorkshopsController : ControllerBase
         // Sprawdzamy, czy ID z URL zgadza się z ID w ciele zapytania
         if (id != command.Id)
         {
-            return BadRequest(); // Zwracamy błąd, jeśli są różne
+            return BadRequest("ID in URL does not match ID in request body"); // Zwracamy błąd, jeśli są różne
         }
 
         await _sender.Send(command);

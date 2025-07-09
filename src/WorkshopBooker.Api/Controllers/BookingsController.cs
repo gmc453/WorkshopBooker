@@ -6,6 +6,7 @@ using WorkshopBooker.Application.Bookings.Commands.CreateBooking;
 using WorkshopBooker.Application.Bookings.Dtos;
 using WorkshopBooker.Application.Bookings.Queries.GetBookingsForWorkshop;
 using WorkshopBooker.Application.Bookings.Queries.GetMyBookings;
+using WorkshopBooker.Application.Bookings.Queries.GetMyWorkshopBookings;
 using System.Security.Claims;
 using WorkshopBooker.Application.Bookings.Commands.ConfirmBooking;
 using WorkshopBooker.Application.Bookings.Commands.CancelBooking;
@@ -62,6 +63,15 @@ public class BookingsController : ControllerBase
     public async Task<IActionResult> GetMyBookings()
     {
         var bookings = await _sender.Send(new GetMyBookingsQuery());
+        return Ok(bookings);
+    }
+
+    [HttpGet("~/api/bookings/my-workshops")]
+    [Authorize]
+    [EnableRateLimiting("ReadPolicy")]
+    public async Task<IActionResult> GetMyWorkshopBookings()
+    {
+        var bookings = await _sender.Send(new GetMyWorkshopBookingsQuery());
         return Ok(bookings);
     }
 
