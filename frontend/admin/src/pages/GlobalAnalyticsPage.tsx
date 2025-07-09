@@ -140,9 +140,9 @@ export default function GlobalAnalyticsPage() {
                   90d
                 </button>
               </div>
-              {analytics.topWorkshops.length > 0 && (
+              {analytics.topWorkshops?.length > 0 && (
                 <Link 
-                  to={`/analytics/${analytics.topWorkshops[0].workshopId}`}
+                  to={`/analytics/${analytics.topWorkshops[0]?.workshopId}`}
                   className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
                 >
                   Szczegóły →
@@ -174,7 +174,7 @@ export default function GlobalAnalyticsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Wszystkie warsztaty</p>
-                <p className="text-2xl font-bold text-gray-900">{analytics.totalWorkshops}</p>
+                <p className="text-2xl font-bold text-gray-900">{analytics.totalWorkshops ?? 0}</p>
                 <p className="text-sm text-gray-500">aktywnych</p>
               </div>
               <Building className="w-8 h-8 text-blue-500" />
@@ -185,7 +185,7 @@ export default function GlobalAnalyticsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Łączne rezerwacje</p>
-                <p className="text-2xl font-bold text-gray-900">{analytics.totalBookings}</p>
+                <p className="text-2xl font-bold text-gray-900">{analytics.totalBookings ?? 0}</p>
                 <div className="flex items-center mt-1">
                   <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
                   <span className="text-sm text-green-600">{formatPercentage(analytics.bookingsGrowth)}</span>
@@ -199,7 +199,7 @@ export default function GlobalAnalyticsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Średnia ocena</p>
-                <p className="text-2xl font-bold text-gray-900">{analytics.averageRating.toFixed(1)}</p>
+                <p className="text-2xl font-bold text-gray-900">{(analytics.averageRating ?? 0).toFixed(1)}</p>
                 <p className="text-sm text-gray-500">wszystkich warsztatów</p>
               </div>
               <Star className="w-8 h-8 text-yellow-500" />
@@ -225,7 +225,7 @@ export default function GlobalAnalyticsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {analytics.topWorkshops.map((workshop, index) => (
+                {analytics.topWorkshops?.map((workshop, index) => (
                   <tr key={workshop.workshopId} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -277,7 +277,7 @@ export default function GlobalAnalyticsPage() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Porównanie wydajności</h3>
             {/* Chart component lub prosty bar chart */}
             <div className="space-y-3">
-              {analytics.workshopComparison.slice(0, 5).map((workshop) => (
+              {analytics.workshopComparison?.slice(0, 5).map((workshop) => (
                 <div key={workshop.workshopId} className="flex items-center justify-between p-3 bg-gray-50 rounded">
                   <div>
                     <p className="font-medium text-sm">{workshop.workshopName}</p>
@@ -298,7 +298,7 @@ export default function GlobalAnalyticsPage() {
             <div className="space-y-3">
               <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                 <p className="text-sm text-green-800">
-                  💡 <strong>Najlepsza wydajność:</strong> Warsztat "{analytics.topWorkshops[0]?.workshopName}" ma najwyższy wzrost przychodów ({formatPercentage(analytics.revenueGrowth)}) w tym miesiącu.
+                  💡 <strong>Najlepsza wydajność:</strong> Warsztat "{analytics.topWorkshops?.[0]?.workshopName ?? 'Brak danych'}" ma najwyższy wzrost przychodów ({formatPercentage(analytics.revenueGrowth)}) w tym miesiącu.
                 </p>
               </div>
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
@@ -308,7 +308,7 @@ export default function GlobalAnalyticsPage() {
               </div>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <p className="text-sm text-blue-800">
-                  📈 <strong>Rekomendacja:</strong> Średnia ocena {analytics.averageRating.toFixed(1)} wskazuje na dobrą jakość usług. Rozważ program lojalnościowy.
+                  📈 <strong>Rekomendacja:</strong> Średnia ocena {(analytics.averageRating ?? 0).toFixed(1)} wskazuje na dobrą jakość usług. Rozważ program lojalnościowy.
                 </p>
               </div>
             </div>

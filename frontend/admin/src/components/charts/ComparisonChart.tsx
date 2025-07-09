@@ -82,7 +82,7 @@ export const ComparisonChart: React.FC<ComparisonChartProps> = ({
       legend: {
         display: showLegend,
         position: 'top' as const,
-        onClick: (event: any, legendItem: any) => {
+        onClick: (_event: any, legendItem: any) => {
           const label = legendItem.text;
           setSelectedMetrics(prev => 
             prev.includes(label) 

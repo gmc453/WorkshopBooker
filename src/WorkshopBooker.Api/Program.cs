@@ -3,6 +3,7 @@ using WorkshopBooker.Api.Middleware;
 using WorkshopBooker.Infrastructure;
 using System.Threading.RateLimiting;
 using WorkshopBooker.Application.Common.Interfaces;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -89,7 +90,11 @@ builder.Services.AddRateLimiter(options =>
     };
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    });
 
 var app = builder.Build();
 

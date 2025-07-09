@@ -53,6 +53,7 @@ public class GetCustomerAnalyticsQueryHandler : IRequestHandler<GetCustomerAnaly
         // Analiza nowych vs powracających klientów
         var allTimeBookings = await _context.Bookings
             .Where(b => b.Slot.WorkshopId == request.WorkshopId)
+            .Include(b => b.Slot)
             .ToListAsync(cancellationToken);
 
         var newCustomers = customerGroups
@@ -74,7 +75,7 @@ public class GetCustomerAnalyticsQueryHandler : IRequestHandler<GetCustomerAnaly
                 CustomerName = !string.IsNullOrEmpty(g.Key.CustomerEmail) ? g.Key.CustomerEmail.Split('@')[0] : "Klient",
                 BookingCount = g.Count(),
                 TotalBookings = g.Count(),
-                TotalSpent = (double)g.Sum(b => b.Service.Price),
+                TotalSpent = (double)g.Sum(b => b.Service?.Price ?? 0),
                 LastVisit = g.Max(b => b.Slot.StartTime),
                 FirstBooking = g.Min(b => b.Slot.StartTime).ToString("yyyy-MM-dd"),
                 LastBooking = g.Max(b => b.Slot.StartTime).ToString("yyyy-MM-dd"),
@@ -91,8 +92,8 @@ public class GetCustomerAnalyticsQueryHandler : IRequestHandler<GetCustomerAnaly
             {
                 Customer = g.Key,
                 Bookings = g.Count(),
-                TotalSpent = (double)g.Sum(b => b.Service.Price),
-                AvgSpent = (double)g.Sum(b => b.Service.Price) / g.Count()
+                TotalSpent = (double)g.Sum(b => b.Service?.Price ?? 0),
+                AvgSpent = (double)g.Sum(b => b.Service?.Price ?? 0) / g.Count()
             })
             .ToList();
 
@@ -183,7 +184,7 @@ public class GetCustomerAnalyticsQueryHandler : IRequestHandler<GetCustomerAnaly
 
         // LTV (Lifetime Value) - średnia wartość klienta
         var averageLTV = customerGroups.Any() 
-            ? customerGroups.Average(g => (double)g.Sum(b => b.Service.Price))
+            ? customerGroups.Average(g => (double)g.Sum(b => b.Service?.Price ?? 0))
             : 0;
 
         // Retention rate - klienci którzy wrócili w tym okresie
@@ -192,6 +193,7 @@ public class GetCustomerAnalyticsQueryHandler : IRequestHandler<GetCustomerAnaly
             .Where(b => b.Slot.WorkshopId == request.WorkshopId && 
                        b.Slot.StartTime >= previousPeriodStart && 
                        b.Slot.StartTime < request.StartDate)
+            .Include(b => b.Slot)
             .ToListAsync(cancellationToken);
 
         var previousCustomers = previousPeriodBookings

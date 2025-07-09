@@ -1,5 +1,5 @@
 import React from 'react';
-import { Target, TrendingUp, Calendar, Lightbulb, AlertTriangle, CheckCircle, Clock, BarChart3, LineChart } from 'lucide-react';
+import { Target, TrendingUp, Calendar, Lightbulb, AlertTriangle, CheckCircle, BarChart3, LineChart } from 'lucide-react';
 import { usePredictions } from '../../hooks/usePredictions';
 import { safeFormatPrice } from '../../utils/safeAccess';
 
@@ -57,7 +57,7 @@ export const PredictionsTab: React.FC<PredictionsTabProps> = ({ workshopId }) =>
                   ? 'text-green-600' 
                   : 'text-red-600'
               }`}>
-                {predictions?.revenuePrediction?.growthPercentage >= 0 ? '+' : ''}
+                {(predictions?.revenuePrediction?.growthPercentage ?? 0) >= 0 ? '+' : ''}
                 {predictions?.revenuePrediction?.growthPercentage?.toFixed(1) || 0}% vs bieżący
               </p>
             </div>
@@ -78,7 +78,7 @@ export const PredictionsTab: React.FC<PredictionsTabProps> = ({ workshopId }) =>
                   ? 'text-green-600' 
                   : 'text-red-600'
               }`}>
-                {predictions?.bookingPrediction?.growthPercentage >= 0 ? '+' : ''}
+                {(predictions?.bookingPrediction?.growthPercentage ?? 0) >= 0 ? '+' : ''}
                 {predictions?.bookingPrediction?.growthPercentage?.toFixed(1) || 0}% vs bieżący
               </p>
             </div>

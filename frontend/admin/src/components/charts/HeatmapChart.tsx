@@ -68,7 +68,7 @@ export const HeatmapChart: React.FC<HeatmapChartProps> = ({
         {/* Y-axis labels (days) */}
         <div className="flex flex-col mr-2">
           <div className="h-8"></div> {/* Spacer for x-axis labels */}
-          {days.map((day, index) => (
+          {days.map((day) => (
             <div 
               key={day}
               className="flex items-center justify-end pr-2 text-xs text-gray-600 font-medium"

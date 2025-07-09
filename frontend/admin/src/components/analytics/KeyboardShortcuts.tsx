@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Keyboard, X, HelpCircle } from 'lucide-react';
 
 interface Shortcut {

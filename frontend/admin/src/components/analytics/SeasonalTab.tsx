@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, TrendingUp, Clock, BarChart3, AlertTriangle, Activity, MapPin, Target } from 'lucide-react';
+import { TrendingUp, Clock, BarChart3, AlertTriangle, Activity, MapPin, Target } from 'lucide-react';
 import { useSeasonalAnalytics } from '../../hooks/useSeasonalAnalytics';
 import { safeFormatPrice } from '../../utils/safeAccess';
 
@@ -49,7 +49,7 @@ export const SeasonalTab: React.FC<SeasonalTabProps> = ({ workshopId }) => {
           <Activity className="w-5 h-5 text-gray-400" />
         </div>
         <div className="grid grid-cols-7 gap-2">
-          {['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Ndz'].map((day, index) => {
+          {['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Ndz'].map((day) => {
                          const dayData = seasonal?.dayOfWeekAnalytics?.find((d: any) => d.dayOfWeek === day);
             const intensity = dayData ? Math.min(dayData.percentageOfTotal / 20, 1) : 0;
             return (

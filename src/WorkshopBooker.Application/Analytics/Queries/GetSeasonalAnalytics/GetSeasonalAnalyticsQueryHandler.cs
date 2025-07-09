@@ -54,8 +54,8 @@ public class GetSeasonalAnalyticsQueryHandler : IRequestHandler<GetSeasonalAnaly
             {
                 DayOfWeek = g.Key.ToString(),
                 TotalBookings = g.Count(),
-                TotalRevenue = (double)g.Sum(b => b.Service.Price),
-                AverageRevenue = g.Average(b => (double)b.Service.Price),
+                TotalRevenue = (double)g.Sum(b => b.Service?.Price ?? 0),
+                AverageRevenue = g.Average(b => (double)(b.Service?.Price ?? 0)),
                 UtilizationRate = CalculateUtilizationRate(g.Key, g.Count(), startDate, endDate)
             })
             .OrderBy(d => d.DayOfWeek)
@@ -68,8 +68,8 @@ public class GetSeasonalAnalyticsQueryHandler : IRequestHandler<GetSeasonalAnaly
             {
                 Hour = g.Key,
                 TotalBookings = g.Count(),
-                TotalRevenue = (double)g.Sum(b => b.Service.Price),
-                AverageRevenue = g.Average(b => (double)b.Service.Price),
+                TotalRevenue = (double)g.Sum(b => b.Service?.Price ?? 0),
+                AverageRevenue = g.Average(b => (double)(b.Service?.Price ?? 0)),
                 PeakHour = g.Count() > bookings.Count() / 24 * 1.5 // 50% więcej niż średnia
             })
             .OrderBy(h => h.Hour)
@@ -84,8 +84,8 @@ public class GetSeasonalAnalyticsQueryHandler : IRequestHandler<GetSeasonalAnaly
                 Month = g.Key.Month,
                 MonthName = new DateTime(g.Key.Year, g.Key.Month, 1).ToString("MMMM", new System.Globalization.CultureInfo("pl-PL")),
                 TotalBookings = g.Count(),
-                TotalRevenue = (double)g.Sum(b => b.Service.Price),
-                AverageRevenue = g.Average(b => (double)b.Service.Price)
+                TotalRevenue = (double)g.Sum(b => b.Service?.Price ?? 0),
+                AverageRevenue = g.Average(b => (double)(b.Service?.Price ?? 0))
             })
             .OrderBy(m => m.Year)
             .ThenBy(m => m.Month)
@@ -104,8 +104,8 @@ public class GetSeasonalAnalyticsQueryHandler : IRequestHandler<GetSeasonalAnaly
             {
                 Quarter = g.Key,
                 TotalBookings = g.Count(),
-                TotalRevenue = (double)g.Sum(b => b.Service.Price),
-                AverageRevenue = g.Average(b => (double)b.Service.Price),
+                TotalRevenue = (double)g.Sum(b => b.Service?.Price ?? 0),
+                AverageRevenue = g.Average(b => (double)(b.Service?.Price ?? 0)),
                 GrowthRate = 0 // TODO: Obliczyć wzrost względem poprzedniego kwartału
             })
             .OrderBy(q => q.Quarter)
@@ -147,12 +147,14 @@ public class GetSeasonalAnalyticsQueryHandler : IRequestHandler<GetSeasonalAnaly
             .Where(b => b.Slot.WorkshopId == workshopId && 
                        b.Slot.StartTime.Year == currentYear)
             .Include(b => b.Service)
+            .Include(b => b.Slot)
             .ToListAsync(cancellationToken);
 
         var previousYearBookings = await _context.Bookings
             .Where(b => b.Slot.WorkshopId == workshopId && 
                        b.Slot.StartTime.Year == previousYear)
             .Include(b => b.Service)
+            .Include(b => b.Slot)
             .ToListAsync(cancellationToken);
 
         var comparison = new List<YearOverYearDto>();
@@ -162,8 +164,8 @@ public class GetSeasonalAnalyticsQueryHandler : IRequestHandler<GetSeasonalAnaly
             var currentMonthBookings = currentYearBookings.Where(b => b.Slot.StartTime.Month == month).ToList();
             var previousMonthBookings = previousYearBookings.Where(b => b.Slot.StartTime.Month == month).ToList();
 
-            var currentRevenue = (double)currentMonthBookings.Sum(b => b.Service.Price);
-            var previousRevenue = (double)previousMonthBookings.Sum(b => b.Service.Price);
+            var currentRevenue = (double)currentMonthBookings.Sum(b => b.Service?.Price ?? 0);
+            var previousRevenue = (double)previousMonthBookings.Sum(b => b.Service?.Price ?? 0);
             var currentBookings = currentMonthBookings.Count;
             var previousBookings = previousMonthBookings.Count;
 

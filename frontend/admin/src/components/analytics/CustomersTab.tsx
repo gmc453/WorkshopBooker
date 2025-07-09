@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, UserPlus, Star, Clock, TrendingUp, Award, PieChart, BarChart3 } from 'lucide-react';
+import { Users, UserPlus, Star, Clock, Award, PieChart, BarChart3 } from 'lucide-react';
 import { useCustomerAnalytics } from '../../hooks/useCustomerAnalytics';
 import { safeFormatPrice } from '../../utils/safeAccess';
 

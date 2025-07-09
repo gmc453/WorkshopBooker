@@ -35,16 +35,19 @@ public class GetWorkshopAnalyticsQueryHandler : IRequestHandler<GetWorkshopAnaly
             .Where(b => b.Slot.WorkshopId == request.WorkshopId && 
                        b.Slot.StartTime >= request.StartDate && 
                        b.Slot.StartTime <= request.EndDate)
-            .Select(b => new
-            {
-                b.Id,
-                b.Service.Price,
-                b.Service.DurationInMinutes,
-                ServiceId = b.Service.Id,
-                b.Service.Name,
-                b.Slot.StartTime
-            })
+            .Include(b => b.Service)
+            .Include(b => b.Slot)
             .ToListAsync(cancellationToken);
+
+        var bookingData = bookings.Select(b => new
+        {
+            b.Id,
+            Price = b.Service?.Price ?? 0,
+            DurationInMinutes = b.Service?.DurationInMinutes ?? 0,
+            ServiceId = b.Service?.Id ?? Guid.Empty,
+            Name = b.Service?.Name ?? "Nieznana usługa",
+            StartTime = b.Slot.StartTime
+        }).ToList();
 
         // Pobierz recenzje
         var reviews = await _context.Reviews
@@ -52,11 +55,11 @@ public class GetWorkshopAnalyticsQueryHandler : IRequestHandler<GetWorkshopAnaly
             .ToListAsync(cancellationToken);
 
         // Oblicz podstawowe KPI
-        var monthlyRevenue = bookings.Sum(b => b.Price);
-        var monthlyBookings = bookings.Count;
+        var monthlyRevenue = bookingData.Sum(b => b.Price);
+        var monthlyBookings = bookingData.Count;
         var averageRating = reviews.Any() ? reviews.Average(r => r.Rating) : 0;
         var totalReviews = reviews.Count;
-        var averageServiceTime = bookings.Any() ? bookings.Average(b => b.DurationInMinutes) / 60.0 : 0;
+        var averageServiceTime = bookingData.Any() ? bookingData.Average(b => b.DurationInMinutes) / 60.0 : 0;
 
         // Oblicz trendy (porównanie z poprzednim okresem)
         var previousStartDate = request.StartDate.AddDays(-(request.EndDate - request.StartDate).Days);
@@ -66,17 +69,20 @@ public class GetWorkshopAnalyticsQueryHandler : IRequestHandler<GetWorkshopAnaly
             .Where(b => b.Slot.WorkshopId == request.WorkshopId && 
                        b.Slot.StartTime >= previousStartDate && 
                        b.Slot.StartTime <= previousEndDate)
-            .Select(b => new { b.Service.Price })
+            .Include(b => b.Service)
+            .Include(b => b.Slot)
             .ToListAsync(cancellationToken);
 
-        var previousRevenue = previousBookings.Sum(b => b.Price);
-        var previousBookingsCount = previousBookings.Count;
+        var previousBookingData = previousBookings.Select(b => new { Price = b.Service?.Price ?? 0 }).ToList();
+
+        var previousRevenue = previousBookingData.Sum(b => b.Price);
+        var previousBookingsCount = previousBookingData.Count;
 
         var revenueGrowth = previousRevenue > 0 ? ((monthlyRevenue - previousRevenue) / previousRevenue) * 100 : 0;
         var bookingsGrowth = previousBookingsCount > 0 ? (int)(((monthlyBookings - previousBookingsCount) / (double)previousBookingsCount) * 100) : 0;
 
         // Rozkład usług
-        var serviceDistribution = bookings
+        var serviceDistribution = bookingData
             .GroupBy(b => new { ServiceId = b.ServiceId, b.Name })
             .Select(g => new ServiceAnalyticsDto
             {
@@ -92,7 +98,7 @@ public class GetWorkshopAnalyticsQueryHandler : IRequestHandler<GetWorkshopAnaly
             .ToList();
 
         // Popularne godziny
-        var timeSlotDistribution = bookings
+        var timeSlotDistribution = bookingData
             .GroupBy(b => b.StartTime.Hour)
             .Select(g => new TimeSlotAnalyticsDto
             {
@@ -104,7 +110,7 @@ public class GetWorkshopAnalyticsQueryHandler : IRequestHandler<GetWorkshopAnaly
             .ToList();
 
         // Przychody w czasie
-        var revenueOverTime = bookings
+        var revenueOverTime = bookingData
             .GroupBy(b => b.StartTime.Date)
             .Select(g => new RevenueDataPointDto
             {

@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import jsPDF from 'jspdf';
 import { useMyWorkshops } from '../hooks/useMyWorkshops';
-import { useDebounce } from '../hooks/useDebounce';
+// import { useDebounce } from '../hooks/useDebounce';
 import { exportToExcel, exportToPowerBI, shareReport } from '../utils/exportUtils';
 import { KeyboardShortcuts } from '../components/analytics/KeyboardShortcuts';
 
@@ -63,7 +63,7 @@ export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'customers' | 'predictions' | 'seasonal'>('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  // const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   useEffect(() => {
     if (workshopId) {
@@ -364,36 +364,27 @@ export default function AnalyticsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex flex-col items-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Ładowanie analityki...</p>
-        </div>
-      </div>
-    );
+    return <div className="p-8 text-center text-gray-500">Ładowanie danych analitycznych...</div>;
   }
 
-  if (error || !analytics) {
+  if (error) {
+    return <div className="p-8 text-center text-red-500">{error}</div>;
+  }
+
+  // Komunikat, gdy nie ma żadnych danych analitycznych
+  if (
+    !analytics ||
+    (analytics.monthlyRevenue === 0 &&
+      analytics.monthlyBookings === 0 &&
+      analytics.averageRating === 0 &&
+      analytics.serviceDistribution.length === 0 &&
+      analytics.popularTimeSlots.length === 0 &&
+      analytics.revenueOverTime.length === 0)
+  ) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-            <p className="text-red-700 font-medium">{error || 'Nie udało się załadować danych'}</p>
-            <div className="mt-4 space-y-2">
-              <Link to="/" className="inline-flex items-center text-blue-600 hover:underline">
-                <ArrowLeft className="w-4 h-4 mr-1" />
-                Wróć do dashboard
-              </Link>
-              <button 
-                onClick={fetchAnalytics}
-                className="block mx-auto px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Spróbuj ponownie
-              </button>
-            </div>
-          </div>
-        </div>
+      <div className="p-8 text-center text-gray-500">
+        Brak danych analitycznych w wybranym okresie.<br />
+        Dodaj rezerwacje, aby zobaczyć statystyki.
       </div>
     );
   }

@@ -49,7 +49,7 @@ public class GetPredictionsQueryHandler : IRequestHandler<GetPredictionsQuery, R
             .Select(g => new DailyDataPoint
             {
                 Date = g.Key,
-                Revenue = g.Sum(b => (double)b.Service.Price),
+                Revenue = g.Sum(b => (double)(b.Service?.Price ?? 0)),
                 Bookings = g.Count(),
                 AverageRating = 0.0 // TODO: Dodać oceny
             })
@@ -86,7 +86,7 @@ public class GetPredictionsQueryHandler : IRequestHandler<GetPredictionsQuery, R
             {
                 Hour = g.Key,
                 Bookings = g.Count(),
-                Revenue = g.Sum(b => (double)b.Service.Price)
+                Revenue = g.Sum(b => (double)(b.Service?.Price ?? 0))
             })
             .OrderByDescending(h => h.Bookings)
             .ToList();

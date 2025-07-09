@@ -51,7 +51,7 @@ public class GetGlobalAnalyticsQueryHandler : IRequestHandler<GetGlobalAnalytics
             .ToListAsync(cancellationToken);
 
         // Oblicz globalne KPI
-        var totalRevenue = allBookings.Sum(b => b.Service.Price);
+        var totalRevenue = allBookings.Sum(b => b.Service?.Price ?? 0);
         var totalBookings = allBookings.Count;
         var totalReviews = allReviews.Count;
         var averageRating = totalReviews > 0 
@@ -69,9 +69,9 @@ public class GetGlobalAnalyticsQueryHandler : IRequestHandler<GetGlobalAnalytics
                 {
                     WorkshopId = g.Key,
                     WorkshopName = userWorkshops.First(w => w.Id == g.Key).Name,
-                    Revenue = bookingsInGroup.Sum(b => b.Service.Price),
+                    Revenue = bookingsInGroup.Sum(b => b.Service?.Price ?? 0),
                     Bookings = bookingsInGroup.Count(),
-                    RevenuePerBooking = bookingsInGroup.Count() > 0 ? bookingsInGroup.Sum(b => b.Service.Price) / bookingsInGroup.Count() : 0,
+                    RevenuePerBooking = bookingsInGroup.Count() > 0 ? bookingsInGroup.Sum(b => b.Service?.Price ?? 0) / bookingsInGroup.Count() : 0,
                     AverageRating = reviewsInGroup.Any() ? reviewsInGroup.Average(r => r.Rating) : 0.0,
                     UtilizationRate = CalculateUtilizationRate(g.Key, request.StartDate, request.EndDate, bookingsInGroup.Count())
                 };
@@ -88,12 +88,13 @@ public class GetGlobalAnalyticsQueryHandler : IRequestHandler<GetGlobalAnalytics
                        b.Slot.StartTime >= previousPeriodStart && 
                        b.Slot.StartTime <= previousPeriodEnd)
             .Include(b => b.Service)
+            .Include(b => b.Slot)
             .ToListAsync(cancellationToken);
 
         var workshopComparison = workshopPerformance.Select((WorkshopPerformanceDto wp) => {
             var previousRevenue = previousPeriodBookings
                 .Where(b => b.Slot.WorkshopId == wp.WorkshopId)
-                .Sum(b => b.Service.Price);
+                .Sum(b => b.Service?.Price ?? 0);
 
             var growthPercentage = previousRevenue > 0 
                 ? ((wp.Revenue - previousRevenue) / previousRevenue) * 100
@@ -115,7 +116,7 @@ public class GetGlobalAnalyticsQueryHandler : IRequestHandler<GetGlobalAnalytics
         }).ToList();
 
         // Oblicz trendy wzrostu
-        var previousTotalRevenue = previousPeriodBookings.Sum(b => b.Service.Price);
+        var previousTotalRevenue = previousPeriodBookings.Sum(b => b.Service?.Price ?? 0);
         var previousTotalBookings = previousPeriodBookings.Count;
 
         var revenueGrowth = previousTotalRevenue > 0 
@@ -134,7 +135,7 @@ public class GetGlobalAnalyticsQueryHandler : IRequestHandler<GetGlobalAnalytics
                 ServiceId = g.Key,
                 ServiceName = g.First().Service.Name,
                 BookingCount = g.Count(),
-                TotalRevenue = g.Sum(b => b.Service.Price),
+                TotalRevenue = g.Sum(b => b.Service?.Price ?? 0),
                 Percentage = totalBookings > 0 ? (g.Count() / (double)totalBookings) * 100 : 0,
                 AverageRating = allReviews.Where(r => g.Select(b => b.Id).Contains(r.BookingId)).Any()
                     ? allReviews.Where(r => g.Select(b => b.Id).Contains(r.BookingId)).Average(r => r.Rating)
@@ -150,7 +151,7 @@ public class GetGlobalAnalyticsQueryHandler : IRequestHandler<GetGlobalAnalytics
             .Select(g => new RevenueDataPointDto
             {
                 Date = g.Key,
-                Revenue = g.Sum(b => b.Service.Price),
+                Revenue = g.Sum(b => b.Service?.Price ?? 0),
                 Bookings = g.Count()
             })
             .OrderBy(r => r.Date)
