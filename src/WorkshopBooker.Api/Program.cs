@@ -132,3 +132,6 @@ app.Lifetime.ApplicationStopping.Register(() =>
 });
 
 app.Run();
+
+// Klasa Program dla testów integracyjnych
+public partial class Program { }

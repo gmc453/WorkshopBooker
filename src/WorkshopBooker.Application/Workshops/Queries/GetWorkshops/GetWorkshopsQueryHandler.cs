@@ -40,7 +40,10 @@ public class GetWorkshopsQueryHandler : IRequestHandler<GetWorkshopsQuery, List<
                 Id = w.Id,
                 Name = w.Name,
                 Description = w.Description,
-                Address = w.Address
+                Address = w.Address,
+                PhoneNumber = w.PhoneNumber,
+                Email = w.Email,
+                IsActive = w.IsActive
             })
             .ToListAsync(cancellationToken);
 

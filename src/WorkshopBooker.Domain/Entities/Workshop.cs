@@ -73,4 +73,13 @@ public class Workshop
     {
         IsActive = false;
     }
+
+    // Publiczna metoda do ustawiania danych kontaktowych
+    public void SetContactData(string? phoneNumber, string? email, string? address)
+    {
+        PhoneNumber = phoneNumber;
+        Email = email;
+        Address = address;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

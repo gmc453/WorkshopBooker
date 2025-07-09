@@ -54,6 +54,23 @@ public class GlobalExceptionHandler
             _ => (int)HttpStatusCode.InternalServerError
         };
 
+        if (exception is ValidationException validationException)
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+            var validationResponse = new
+            {
+                error = validationException.Message,
+                validationErrors = validationException.ValidationErrors,
+                timestamp = DateTime.UtcNow
+            };
+            var validationJson = JsonSerializer.Serialize(validationResponse, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+            await context.Response.WriteAsync(validationJson);
+            return;
+        }
+
         var jsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase

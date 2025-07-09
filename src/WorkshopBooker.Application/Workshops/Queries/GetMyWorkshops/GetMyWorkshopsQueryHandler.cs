@@ -36,6 +36,9 @@ public class GetMyWorkshopsQueryHandler : IRequestHandler<GetMyWorkshopsQuery, L
                 Name = w.Name,
                 Description = w.Description,
                 Address = w.Address,
+                PhoneNumber = w.PhoneNumber,
+                Email = w.Email,
+                IsActive = w.IsActive,
                 // ✅ POPRAWKA: Dodano mapowanie Services
                 Services = w.Services.Where(s => s.IsActive).Select(s => new ServiceDto
                 {
