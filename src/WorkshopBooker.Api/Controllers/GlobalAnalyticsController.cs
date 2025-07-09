@@ -4,6 +4,9 @@ using MediatR;
 using WorkshopBooker.Application.Analytics.Queries.GetGlobalAnalytics;
 using WorkshopBooker.Application.Common.Constants;
 using Microsoft.AspNetCore.RateLimiting;
+using WorkshopBooker.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using WorkshopBooker.Application.Common.Interfaces;
 
 namespace WorkshopBooker.Api.Controllers;
 
@@ -14,10 +17,17 @@ namespace WorkshopBooker.Api.Controllers;
 public class GlobalAnalyticsController : ControllerBase
 {
     private readonly ISender _sender;
+    private readonly IApplicationDbContext _context;
+    private readonly ICurrentUserProvider _currentUserProvider;
 
-    public GlobalAnalyticsController(ISender sender)
+    public GlobalAnalyticsController(
+        ISender sender, 
+        IApplicationDbContext context,
+        ICurrentUserProvider currentUserProvider)
     {
         _sender = sender;
+        _context = context;
+        _currentUserProvider = currentUserProvider;
     }
 
     [HttpGet("overview")]
@@ -46,13 +56,59 @@ public class GlobalAnalyticsController : ControllerBase
         
         if (result.IsSuccess)
         {
+            // Pobierz rezerwacje z dzisiaj według statusu
+            var currentUserId = _currentUserProvider.UserId;
+            if (currentUserId == null)
+                return BadRequest("Użytkownik nie jest zalogowany");
+
+            // Pobierz warsztaty użytkownika
+            var userWorkshopIds = await _context.Workshops
+                .Where(w => w.UserId == currentUserId)
+                .Select(w => w.Id)
+                .ToListAsync();
+
+            if (!userWorkshopIds.Any())
+            {
+                var emptyStats = new
+                {
+                    todaysBookings = 0,
+                    pendingBookings = 0,
+                    completedBookings = 0,
+                    canceledBookings = 0,
+                    weeklyRevenue = 0m,
+                    activeWorkshops = 0,
+                    avgRating = 0.0
+                };
+                return Ok(emptyStats);
+            }
+
+            // Pobierz rezerwacje z dzisiaj według statusu
+            var todaysBookings = await _context.Bookings
+                .Where(b => userWorkshopIds.Contains(b.Slot.WorkshopId) && 
+                           b.Slot.StartTime >= today && 
+                           b.Slot.StartTime < tomorrow)
+                .ToListAsync();
+
+            var pendingBookings = todaysBookings.Count(b => b.Status == BookingStatus.Requested);
+            var completedBookings = todaysBookings.Count(b => b.Status == BookingStatus.Completed);
+            var canceledBookings = todaysBookings.Count(b => b.Status == BookingStatus.Canceled);
+
+            // Pobierz przychody z ostatniego tygodnia
+            var weekAgo = today.AddDays(-7);
+            var weeklyRevenue = await _context.Bookings
+                .Where(b => userWorkshopIds.Contains(b.Slot.WorkshopId) && 
+                           b.Slot.StartTime >= weekAgo && 
+                           b.Slot.StartTime < tomorrow)
+                .Include(b => b.Service)
+                .SumAsync(b => b.Service != null ? b.Service.Price : 0);
+
             var todayStats = new
             {
-                todaysBookings = result.Value.TotalBookings,
-                pendingBookings = result.Value.TopWorkshops?.Sum(w => w.Bookings) ?? 0, // Uproszczone - w rzeczywistości należałoby dodać filtrowanie po statusie
-                completedBookings = 0, // TODO: Dodać logikę dla zakończonych rezerwacji
-                canceledBookings = 0, // TODO: Dodać logikę dla anulowanych rezerwacji
-                weeklyRevenue = result.Value.TotalRevenue, // Tymczasowo używamy dzisiejszych przychodów
+                todaysBookings = todaysBookings.Count,
+                pendingBookings = pendingBookings,
+                completedBookings = completedBookings,
+                canceledBookings = canceledBookings,
+                weeklyRevenue = weeklyRevenue,
                 activeWorkshops = result.Value.TotalWorkshops,
                 avgRating = result.Value.AverageRating
             };
