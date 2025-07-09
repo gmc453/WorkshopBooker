@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkshopBooker.Infrastructu
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkshopBooker.Api", "src\WorkshopBooker.Api\WorkshopBooker.Api.csproj", "{F6555FA4-9E15-4154-8E37-27F74E22BBE6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkshopBooker.Integration.Tests", "src\WorkshopBooker.Integration.Tests\WorkshopBooker.Integration.Tests.csproj", "{A1B2C3D4-5E6F-7890-ABCD-EF1234567890}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,11 +40,16 @@ Global
 		{F6555FA4-9E15-4154-8E37-27F74E22BBE6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F6555FA4-9E15-4154-8E37-27F74E22BBE6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F6555FA4-9E15-4154-8E37-27F74E22BBE6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1B2C3D4-5E6F-7890-ABCD-EF1234567890}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1B2C3D4-5E6F-7890-ABCD-EF1234567890}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1B2C3D4-5E6F-7890-ABCD-EF1234567890}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1B2C3D4-5E6F-7890-ABCD-EF1234567890}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{B6A6F10E-76DA-4706-9D6F-1AFB404AE1EE} = {B805868B-0AAE-47A2-8EA0-9AEAF1B72F85}
 		{5F773962-824B-4A9E-9006-18815FB428BA} = {B805868B-0AAE-47A2-8EA0-9AEAF1B72F85}
 		{81D3F814-0C35-4AD7-9699-2FAF32CEB7E2} = {B805868B-0AAE-47A2-8EA0-9AEAF1B72F85}
 		{F6555FA4-9E15-4154-8E37-27F74E22BBE6} = {B805868B-0AAE-47A2-8EA0-9AEAF1B72F85}
+		{A1B2C3D4-5E6F-7890-ABCD-EF1234567890} = {B805868B-0AAE-47A2-8EA0-9AEAF1B72F85}
 	EndGlobalSection
 EndGlobal
