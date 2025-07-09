@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <GlobalUsings>$(GlobalUsings);global using Program = WorkshopBooker.Api.Program;</GlobalUsings>
   </PropertyGroup>
 
   <ItemGroup>

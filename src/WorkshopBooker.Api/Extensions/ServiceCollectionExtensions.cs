@@ -60,6 +60,9 @@ public static class ServiceCollectionExtensions
             
         services.AddValidatorsFromAssembly(typeof(IApplicationMarker).Assembly);
         
+        // Dodaj pipeline walidacji
+        services.AddTransient(typeof(MediatR.IPipelineBehavior<,>), typeof(WorkshopBooker.Application.Common.Validation.ValidationBehavior<,>));
+        
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserProvider, CurrentUserProvider>();
         services.AddScoped<BookingValidator>();

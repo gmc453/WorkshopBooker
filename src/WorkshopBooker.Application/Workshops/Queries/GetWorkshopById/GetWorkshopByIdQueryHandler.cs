@@ -27,6 +27,9 @@ public class GetWorkshopByIdQueryHandler : IRequestHandler<GetWorkshopByIdQuery,
                 Name = w.Name,
                 Description = w.Description,
                 Address = w.Address,
+                PhoneNumber = w.PhoneNumber,
+                Email = w.Email,
+                IsActive = w.IsActive,
                 Services = w.Services.Where(s => s.IsActive).Select(s => new ServiceDto
                 {
                     Id = s.Id,

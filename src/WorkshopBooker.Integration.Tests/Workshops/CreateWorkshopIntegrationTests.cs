@@ -23,6 +23,7 @@ namespace WorkshopBooker.Integration.Tests.Workshops;
 
 public class CreateWorkshopIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
 {
+    private static readonly string InMemoryDbName = "TestDb_Shared"; // Stała nazwa bazy dla wszystkich testów
     private readonly WebApplicationFactory<Program> _factory;
     private readonly JsonSerializerOptions _jsonOptions;
 
@@ -32,18 +33,41 @@ public class CreateWorkshopIntegrationTests : IClassFixture<WebApplicationFactor
         {
             builder.ConfigureServices(services =>
             {
-                // Usuń istniejący DbContext i zastąp InMemory
-                var descriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
-                if (descriptor != null)
+                // Usuń WSZYSTKIE rejestracje związane z bazą danych
+                var descriptorsToRemove = services
+                    .Where(d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>) ||
+                               d.ServiceType == typeof(IApplicationDbContext) ||
+                               d.ServiceType == typeof(ApplicationDbContext) ||
+                               d.ServiceType.Name.Contains("DbContext") ||
+                               d.ServiceType.Name.Contains("Npgsql") ||
+                               d.ServiceType.Name.Contains("PostgreSQL"))
+                    .ToList();
+
+                foreach (var descriptor in descriptorsToRemove)
                 {
                     services.Remove(descriptor);
                 }
 
+                // Usuń również wszystkie rejestracje providerów EF Core
+                var efDescriptors = services
+                    .Where(d => d.ServiceType.Name.Contains("EntityFramework") ||
+                               d.ServiceType.Name.Contains("DbContext"))
+                    .ToList();
+
+                foreach (var descriptor in efDescriptors)
+                {
+                    services.Remove(descriptor);
+                }
+
+                // Dodaj InMemory DbContext ze współdzieloną nazwą
                 services.AddDbContext<ApplicationDbContext>(options =>
                 {
-                    options.UseInMemoryDatabase("TestDb_" + Guid.NewGuid());
+                    options.UseInMemoryDatabase(InMemoryDbName);
                 });
+
+                // Rejestruj ApplicationDbContext jako IApplicationDbContext
+                services.AddScoped<IApplicationDbContext>(provider => 
+                    provider.GetRequiredService<ApplicationDbContext>());
 
                 // Dodaj testowe dane
                 services.AddScoped<ITestDataSeeder, TestDataSeeder>();
@@ -472,7 +496,8 @@ public class CreateWorkshopIntegrationTests : IClassFixture<WebApplicationFactor
         savedWorkshop.Should().NotBeNull();
         savedWorkshop!.UserId.Should().NotBeNull();
         savedWorkshop.User.Should().NotBeNull();
-        savedWorkshop.User!.Email.Should().Be("test@example.com");
+        savedWorkshop.User!.Email.Should().StartWith("test-");
+        savedWorkshop.User.Email.Should().EndWith("@example.com");
         savedWorkshop.User.FirstName.Should().Be("Test");
         savedWorkshop.User.LastName.Should().Be("User");
     }
@@ -513,20 +538,21 @@ public class CreateWorkshopIntegrationTests : IClassFixture<WebApplicationFactor
         var token = await GenerateJwtTokenAsync(client);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        var createWorkshopRequest = new CreateWorkshopCommand(
-            "Concurrent Test Warsztat",
-            "Warsztat do testowania współbieżności",
-            "+48123456789",
-            "concurrent@workshop.com",
-            "ul. Concurrent 1, Warszawa"
-        );
-
-        var json = JsonSerializer.Serialize(createWorkshopRequest, _jsonOptions);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-        // Act - wykonaj kilka równoczesnych żądań
-        var tasks = Enumerable.Range(0, 3).Select(async _ =>
+        // Act - wykonaj kilka równoczesnych żądań z unikalnymi nazwami
+        var tasks = Enumerable.Range(0, 3).Select(async index =>
         {
+            var uniqueId = Guid.NewGuid().ToString("N")[..8];
+            var createWorkshopRequest = new CreateWorkshopCommand(
+                $"Concurrent Test Warsztat {index} {uniqueId}",
+                $"Warsztat do testowania współbieżności {index}",
+                "+48123456789",
+                $"concurrent{index}@workshop.com",
+                $"ul. Concurrent {index}, Warszawa"
+            );
+
+            var json = JsonSerializer.Serialize(createWorkshopRequest, _jsonOptions);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
             return await client.PostAsync("/api/workshops", content);
         });
 
@@ -534,8 +560,18 @@ public class CreateWorkshopIntegrationTests : IClassFixture<WebApplicationFactor
 
         // Assert
         responses.Should().HaveCount(3);
-        // Wszystkie powinny zwrócić 201 Created (w testach InMemory nie ma problemów z współbieżnością)
+        // Wszystkie powinny zwrócić 201 Created (każdy ma unikalną nazwę)
         responses.Should().OnlyContain(r => r.StatusCode == HttpStatusCode.Created);
+        
+        // Sprawdź czy wszystkie warsztaty zostały zapisane w bazie
+        using var scope = _factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+        
+        var savedWorkshops = await context.Workshops
+            .Where(w => w.Name.StartsWith("Concurrent Test Warsztat"))
+            .ToListAsync();
+        
+        savedWorkshops.Should().HaveCount(3);
     }
 
     [Fact]
@@ -586,10 +622,37 @@ public class CreateWorkshopIntegrationTests : IClassFixture<WebApplicationFactor
 
     private async Task<string> GenerateJwtTokenAsync(HttpClient client)
     {
-        // Utwórz testowego użytkownika i wygeneruj token
+        // Generuj unikalny email dla każdego testu
+        var uniqueId = Guid.NewGuid().ToString("N")[..8];
+        var uniqueEmail = $"test-{uniqueId}@example.com";
+        
+        // Zarejestruj użytkownika najpierw
+        var registerRequest = new
+        {
+            Email = uniqueEmail,
+            Password = "TestPassword123!",
+            FirstName = "Test",
+            LastName = "User"
+        };
+
+        var registerJson = JsonSerializer.Serialize(registerRequest, _jsonOptions);
+        var registerContent = new StringContent(registerJson, Encoding.UTF8, "application/json");
+
+        var registerResponse = await client.PostAsync("/api/auth/register", registerContent);
+        
+        if (!registerResponse.IsSuccessStatusCode)
+        {
+            var errorContent = await registerResponse.Content.ReadAsStringAsync();
+            throw new InvalidOperationException($"Rejestracja nie powiodła się: {registerResponse.StatusCode} - {errorContent}");
+        }
+
+        // Poczekaj chwilę, aby upewnić się, że dane zostały zapisane
+        await Task.Delay(100);
+
+        // Teraz spróbuj zalogować
         var loginRequest = new
         {
-            Email = "test@example.com",
+            Email = uniqueEmail,
             Password = "TestPassword123!"
         };
 
@@ -605,33 +668,8 @@ public class CreateWorkshopIntegrationTests : IClassFixture<WebApplicationFactor
             return authResponse!.Token;
         }
 
-        // Jeśli login nie działa, zarejestruj użytkownika
-        var registerRequest = new
-        {
-            Email = "test@example.com",
-            Password = "TestPassword123!",
-            FirstName = "Test",
-            LastName = "User"
-        };
-
-        var registerJson = JsonSerializer.Serialize(registerRequest, _jsonOptions);
-        var registerContent = new StringContent(registerJson, Encoding.UTF8, "application/json");
-
-        var registerResponse = await client.PostAsync("/api/auth/register", registerContent);
-        
-        if (registerResponse.IsSuccessStatusCode)
-        {
-            // Spróbuj ponownie zalogować
-            var retryLoginResponse = await client.PostAsync("/api/auth/login", loginContent);
-            if (retryLoginResponse.IsSuccessStatusCode)
-            {
-                var retryLoginContent = await retryLoginResponse.Content.ReadAsStringAsync();
-                var retryAuthResponse = JsonSerializer.Deserialize<AuthResponse>(retryLoginContent, _jsonOptions);
-                return retryAuthResponse!.Token;
-            }
-        }
-
-        throw new InvalidOperationException("Nie udało się wygenerować tokenu JWT");
+        var loginErrorContent = await loginResponse.Content.ReadAsStringAsync();
+        throw new InvalidOperationException($"Nie udało się wygenerować tokenu JWT: {loginResponse.StatusCode} - {loginErrorContent}");
     }
 
     // Klasy pomocnicze do deserializacji odpowiedzi
@@ -694,7 +732,7 @@ public class TestDataSeeder : ITestDataSeeder
                 "User"
             );
             _context.Users.Add(user);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(CancellationToken.None);
         }
     }
 } 

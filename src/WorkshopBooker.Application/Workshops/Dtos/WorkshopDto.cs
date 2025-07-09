@@ -12,5 +12,8 @@ public record WorkshopDto
     public required string Name { get; init; }
     public required string Description { get; init; }
     public string? Address { get; init; }
+    public string? PhoneNumber { get; init; }
+    public string? Email { get; init; }
+    public bool IsActive { get; init; }
     public List<ServiceDto> Services { get; init; } = new();
 }

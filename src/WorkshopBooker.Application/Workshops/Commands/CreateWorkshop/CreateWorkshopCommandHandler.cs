@@ -36,8 +36,9 @@ public class CreateWorkshopCommandHandler : IRequestHandler<CreateWorkshopComman
 
             _logger.LogInformation("Tworzenie nowego warsztatu: {WorkshopName}", request.Name);
 
-            // Sprawdź czy warsztat o takiej nazwie już istnieje
-            var existingWorkshop = _context.Workshops.FirstOrDefault(w => w.Name == request.Name);
+            // Sprawdź czy warsztat o takiej nazwie już istnieje (case-insensitive, bez białych znaków)
+            var normalizedName = request.Name.Trim().ToLowerInvariant();
+            var existingWorkshop = _context.Workshops.FirstOrDefault(w => w.Name.Trim().ToLower() == normalizedName);
             if (existingWorkshop != null)
             {
                 _logger.LogWarning("Próba utworzenia warsztatu o nazwie, która już istnieje: {WorkshopName}", request.Name);
@@ -49,6 +50,9 @@ public class CreateWorkshopCommandHandler : IRequestHandler<CreateWorkshopComman
                 Guid.NewGuid(),
                 request.Name,
                 request.Description);
+
+            // Przypisz dodatkowe dane kontaktowe
+            workshop.SetContactData(request.PhoneNumber, request.Email, request.Address);
 
             // Przypisz właściciela warsztatu
             workshop.AssignOwner(_currentUserProvider.UserId.Value);
