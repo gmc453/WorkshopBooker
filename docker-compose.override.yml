@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  workshop-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    command: ["dotnet", "watch", "--project", "WorkshopBooker.Api/WorkshopBooker.Api.csproj"]
+
+  emergency-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    command: ["dotnet", "watch", "--project", "WorkshopBooker.Api/WorkshopBooker.Api.csproj"]
+
+  web-app:
+    command: ["npm", "run", "dev"]
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8088

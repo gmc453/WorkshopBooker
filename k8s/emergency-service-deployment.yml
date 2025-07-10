@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: emergency-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: emergency-service
+  template:
+    metadata:
+      labels:
+        app: emergency-service
+    spec:
+      containers:
+        - name: emergency-service
+          image: ghcr.io/workshopbooker/emergency-service:latest
+          ports:
+            - containerPort: 80
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Production
