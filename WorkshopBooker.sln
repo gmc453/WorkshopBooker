@@ -1,4 +1,3 @@
-﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -20,6 +19,7 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkshopBooker.Emergency.Infrastructure", "src\Services\Emergency\WorkshopBooker.Emergency.Infrastructure\WorkshopBooker.Emergency.Infrastructure.csproj", "{C0D51771-39D3-4E0C-8798-D5B540962E6B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkshopBooker.Emergency.Api", "src\Services\Emergency\WorkshopBooker.Emergency.Api\WorkshopBooker.Emergency.Api.csproj", "{6C5922CC-AC74-45E7-99CD-194BF2EC98D0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkshopBooker.Gateway", "src\Gateway\WorkshopBooker.Gateway\WorkshopBooker.Gateway.csproj", "{75B4C712-C36E-414A-93BD-04063B16CCF5}"
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{B056B1B0-D801-488D-9575-8E67809892B2}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Insurance", "Insurance", "{E98735FF-1459-4234-B9AD-40E0698FAFAC}"

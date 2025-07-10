@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  api:
+    build: ./src/WorkshopBooker.Api
+    ports:
+      - "5001:80"
+  gateway:
+    build: ./src/Gateway/WorkshopBooker.Gateway
+    ports:
+      - "5000:80"
+    depends_on:
+      - api
