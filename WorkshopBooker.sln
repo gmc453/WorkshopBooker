@@ -1,4 +1,3 @@
-﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -15,6 +14,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkshopBooker.Api", "src\W
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkshopBooker.Integration.Tests", "src\WorkshopBooker.Integration.Tests\WorkshopBooker.Integration.Tests.csproj", "{A1B2C3D4-5E6F-7890-ABCD-EF1234567890}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkshopBooker.Gateway", "src\Gateway\WorkshopBooker.Gateway\WorkshopBooker.Gateway.csproj", "{75B4C712-C36E-414A-93BD-04063B16CCF5}"
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{B056B1B0-D801-488D-9575-8E67809892B2}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Insurance", "Insurance", "{E98735FF-1459-4234-B9AD-40E0698FAFAC}"
