@@ -9,7 +9,7 @@ const showRateLimitNotification = (info: any) => {
 
 // Ustawiam prawidłowy adres API - port 5197 jest poprawny zgodnie z konfiguracją backendu
 const apiClient = axios.create({
-  baseURL: 'http://localhost:5197',
+  baseURL: process.env.NEXT_PUBLIC_API_GATEWAY_URL || '/api',
   headers: {
     'Content-Type': 'application/json'
   }
