@@ -14,6 +14,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkshopBooker.Api", "src\W
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkshopBooker.Integration.Tests", "src\WorkshopBooker.Integration.Tests\WorkshopBooker.Integration.Tests.csproj", "{A1B2C3D4-5E6F-7890-ABCD-EF1234567890}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkshopBooker.Emergency.Domain", "src\Services\Emergency\WorkshopBooker.Emergency.Domain\WorkshopBooker.Emergency.Domain.csproj", "{E685568F-1B00-468B-98AD-C4C6FE449E35}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkshopBooker.Emergency.Infrastructure", "src\Services\Emergency\WorkshopBooker.Emergency.Infrastructure\WorkshopBooker.Emergency.Infrastructure.csproj", "{C0D51771-39D3-4E0C-8798-D5B540962E6B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkshopBooker.Emergency.Api", "src\Services\Emergency\WorkshopBooker.Emergency.Api\WorkshopBooker.Emergency.Api.csproj", "{6C5922CC-AC74-45E7-99CD-194BF2EC98D0}"
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkshopBooker.Gateway", "src\Gateway\WorkshopBooker.Gateway\WorkshopBooker.Gateway.csproj", "{75B4C712-C36E-414A-93BD-04063B16CCF5}"
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{B056B1B0-D801-488D-9575-8E67809892B2}"
 EndProject
@@ -58,6 +63,22 @@ Global
 		{F6555FA4-9E15-4154-8E37-27F74E22BBE6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F6555FA4-9E15-4154-8E37-27F74E22BBE6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F6555FA4-9E15-4154-8E37-27F74E22BBE6}.Release|Any CPU.Build.0 = Release|Any CPU
+                {A1B2C3D4-5E6F-7890-ABCD-EF1234567890}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+                {A1B2C3D4-5E6F-7890-ABCD-EF1234567890}.Debug|Any CPU.Build.0 = Debug|Any CPU
+                {A1B2C3D4-5E6F-7890-ABCD-EF1234567890}.Release|Any CPU.ActiveCfg = Release|Any CPU
+                {A1B2C3D4-5E6F-7890-ABCD-EF1234567890}.Release|Any CPU.Build.0 = Release|Any CPU
+                {E685568F-1B00-468B-98AD-C4C6FE449E35}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+                {E685568F-1B00-468B-98AD-C4C6FE449E35}.Debug|Any CPU.Build.0 = Debug|Any CPU
+                {E685568F-1B00-468B-98AD-C4C6FE449E35}.Release|Any CPU.ActiveCfg = Release|Any CPU
+                {E685568F-1B00-468B-98AD-C4C6FE449E35}.Release|Any CPU.Build.0 = Release|Any CPU
+                {C0D51771-39D3-4E0C-8798-D5B540962E6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+                {C0D51771-39D3-4E0C-8798-D5B540962E6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+                {C0D51771-39D3-4E0C-8798-D5B540962E6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+                {C0D51771-39D3-4E0C-8798-D5B540962E6B}.Release|Any CPU.Build.0 = Release|Any CPU
+                {6C5922CC-AC74-45E7-99CD-194BF2EC98D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+                {6C5922CC-AC74-45E7-99CD-194BF2EC98D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+                {6C5922CC-AC74-45E7-99CD-194BF2EC98D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+                {6C5922CC-AC74-45E7-99CD-194BF2EC98D0}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A1B2C3D4-5E6F-7890-ABCD-EF1234567890}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A1B2C3D4-5E6F-7890-ABCD-EF1234567890}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A1B2C3D4-5E6F-7890-ABCD-EF1234567890}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -91,6 +112,12 @@ Global
 		{B6A6F10E-76DA-4706-9D6F-1AFB404AE1EE} = {B805868B-0AAE-47A2-8EA0-9AEAF1B72F85}
 		{5F773962-824B-4A9E-9006-18815FB428BA} = {B805868B-0AAE-47A2-8EA0-9AEAF1B72F85}
 		{81D3F814-0C35-4AD7-9699-2FAF32CEB7E2} = {B805868B-0AAE-47A2-8EA0-9AEAF1B72F85}
+                {F6555FA4-9E15-4154-8E37-27F74E22BBE6} = {B805868B-0AAE-47A2-8EA0-9AEAF1B72F85}
+                {A1B2C3D4-5E6F-7890-ABCD-EF1234567890} = {B805868B-0AAE-47A2-8EA0-9AEAF1B72F85}
+                {E685568F-1B00-468B-98AD-C4C6FE449E35} = {B805868B-0AAE-47A2-8EA0-9AEAF1B72F85}
+                {C0D51771-39D3-4E0C-8798-D5B540962E6B} = {B805868B-0AAE-47A2-8EA0-9AEAF1B72F85}
+                {6C5922CC-AC74-45E7-99CD-194BF2EC98D0} = {B805868B-0AAE-47A2-8EA0-9AEAF1B72F85}
+        EndGlobalSection
 		{F6555FA4-9E15-4154-8E37-27F74E22BBE6} = {B805868B-0AAE-47A2-8EA0-9AEAF1B72F85}
 		{A1B2C3D4-5E6F-7890-ABCD-EF1234567890} = {B805868B-0AAE-47A2-8EA0-9AEAF1B72F85}
 		{B056B1B0-D801-488D-9575-8E67809892B2} = {B805868B-0AAE-47A2-8EA0-9AEAF1B72F85}
