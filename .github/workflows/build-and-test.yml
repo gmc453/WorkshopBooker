@@ -1,0 +1,42 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, feature/** ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0.x
+      - name: Restore
+        run: dotnet restore WorkshopBooker.sln
+      - name: Build
+        run: dotnet build --no-restore WorkshopBooker.sln
+      - name: Test
+        run: dotnet test --no-build --verbosity normal
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Install frontend deps
+        run: npm install --prefix frontend/client
+      - name: Lint frontend
+        run: npm run lint --prefix frontend/client
