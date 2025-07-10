@@ -16,6 +16,8 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<AvailableSlot> AvailableSlots { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<Review> Reviews { get; set; }
+    public DbSet<Vehicle> Vehicles { get; set; }
+    public DbSet<RentalReservation> RentalReservations { get; set; }
     
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
@@ -107,6 +109,33 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        // Konfiguracja Vehicle
+        modelBuilder.Entity<Vehicle>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Make).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Model).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.LicensePlate).IsRequired().HasMaxLength(20);
+        });
+
+        // Konfiguracja RentalReservation
+        modelBuilder.Entity<RentalReservation>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.StartDate).IsRequired();
+            entity.Property(e => e.EndDate).IsRequired();
+
+            entity.HasOne(e => e.Vehicle)
+                .WithMany()
+                .HasForeignKey(e => e.VehicleId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         // Indeksy dla lepszej wydajności
         modelBuilder.Entity<Workshop>()
             .HasIndex(e => e.Name);
@@ -138,5 +167,11 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
         modelBuilder.Entity<Review>()
             .HasIndex(e => e.BookingId)
             .IsUnique();
+
+        modelBuilder.Entity<Vehicle>()
+            .HasIndex(e => e.Status);
+
+        modelBuilder.Entity<RentalReservation>()
+            .HasIndex(e => new { e.VehicleId, e.StartDate });
     }
 }

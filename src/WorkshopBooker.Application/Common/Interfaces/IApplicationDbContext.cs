@@ -14,6 +14,8 @@ public interface IApplicationDbContext
     DbSet<AvailableSlot> AvailableSlots { get; }
     DbSet<User> Users { get; }
     DbSet<Review> Reviews { get; }
+    DbSet<Vehicle> Vehicles { get; }
+    DbSet<RentalReservation> RentalReservations { get; }
     DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
