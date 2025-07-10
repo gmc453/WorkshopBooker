@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: legal-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: legal-service
+  template:
+    metadata:
+      labels:
+        app: legal-service
+    spec:
+      containers:
+        - name: legal-service
+          image: ghcr.io/workshopbooker/legal-service:latest
+          ports:
+            - containerPort: 80
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Production
