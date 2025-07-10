@@ -1,0 +1,28 @@
+{
+  "Routes": [
+    {
+      "DownstreamPathTemplate": "/api/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "api",
+          "Port": 80
+        }
+      ],
+      "UpstreamPathTemplate": "/api/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"]
+    }
+  ],
+  "GlobalConfiguration": {
+    "BaseUrl": "http://localhost:5000",
+    "RateLimitOptions": {
+      "ClientIdHeader": "Client-Id",
+      "QuotaExceededMessage": "Too many requests",
+      "HttpStatusCode": 429,
+      "EnableRateLimiting": true,
+      "Period": "1m",
+      "PeriodTimespan": 60,
+      "Limit": 60
+    }
+  }
+}
