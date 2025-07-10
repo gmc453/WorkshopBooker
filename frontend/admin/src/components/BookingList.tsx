@@ -111,11 +111,11 @@ const BookingList: FC<BookingListProps> = ({
     return workshop?.name || null
   }, [workshopId, workshops])
   
-  // Filtrowanie rezerwacji
+  // Filtrowanie i sortowanie rezerwacji
   const filteredBookings = useMemo(() => {
     if (!bookingsData) return []
     
-    return bookingsData.filter(booking => {
+    let filtered = bookingsData.filter(booking => {
       // Filtrowanie po statusie
       if (statusFilter !== 'all') {
         if (booking.status.toString() !== statusFilter) {
@@ -135,6 +135,13 @@ const BookingList: FC<BookingListProps> = ({
       }
       
       return true
+    })
+    
+    // Sortowanie według daty - od najstarszej do najnowszej
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.slotStartTime)
+      const dateB = new Date(b.slotStartTime)
+      return dateA.getTime() - dateB.getTime()
     })
   }, [bookingsData, statusFilter, searchQuery])
 

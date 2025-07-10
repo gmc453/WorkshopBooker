@@ -7,10 +7,13 @@ scrape_configs:
       - targets: ['workshop-service:80']
   - job_name: 'emergency-service'
     static_configs:
-      - targets: ['emergency-service:5001']
+      - targets: ['emergency-service:80']
   - job_name: 'insurance-service'
     static_configs:
-      - targets: ['insurance-service:5002']
+      - targets: ['insurance-service:80']
   - job_name: 'legal-service'
     static_configs:
-      - targets: ['legal-service:5003']
+      - targets: ['legal-service:80']
+  - job_name: 'api-gateway'
+    static_configs:
+      - targets: ['api-gateway:80']

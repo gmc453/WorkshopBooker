@@ -346,7 +346,8 @@ const DashboardPage: FC = () => {
     if (!todayStats) return null;
     return {
       todaysBookings: todayStats.todaysBookings,
-      weeklyRevenue: todayStats.weeklyRevenue, // Tymczasowo używamy dzisiejszych przychodów
+      todaysRevenue: todayStats.todaysRevenue, // Dzisiejsze przychody
+      weeklyRevenue: todayStats.weeklyRevenue, // Przychody z tygodnia
       activeWorkshops: todayStats.activeWorkshops,
       avgRating: todayStats.avgRating,
       pendingBookings: todayStats.pendingBookings,
@@ -677,7 +678,7 @@ const DashboardPage: FC = () => {
                 <StatCard
                   icon={DollarSign}
                   title="Przychody dzisiejsze"
-                  value={formatCurrency(stats.weeklyRevenue)}
+                  value={formatCurrency(stats.todaysRevenue)}
                   subtitle="Dzisiaj"
                   color="green"
                   trend={{ direction: 'up', value: '+8.5%' }}

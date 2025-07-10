@@ -1,23 +1,27 @@
-using WorkshopBooker.Application.Common.Interfaces;
-using Microsoft.AspNetCore.Mvc;
-using WorkshopBooker.Insurance.Domain.Entities;
-using WorkshopBooker.Insurance.Infrastructure.Services;
+using WorkshopBooker.Core.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddSingleton<IPolicyRepository, InMemoryPolicyRepository>();
-builder.Services.AddSingleton<IPaymentGateway, DummyPaymentGateway>();
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// ✅ DODANO: Core services
+builder.Services.AddScoped<IEventBus, InMemoryEventBus>();
+
+// Health checks
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
-app.MapGet("/api/policies", (IPolicyRepository repo) => repo.GetAll());
-app.MapPost("/api/policies", async ([FromBody] InsurancePolicy policy, IPolicyRepository repo, IPaymentGateway payments) =>
+if (app.Environment.IsDevelopment())
 {
-    var paymentId = await payments.CreatePaymentAsync(policy.Id, policy.Premium, "PLN");
-    repo.Add(policy);
-    return Results.Created($"/api/policies/{policy.Id}", new { policy.Id, paymentId });
-});
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseAuthorization();
+app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();
-
-public partial class Program { }

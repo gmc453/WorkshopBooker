@@ -3,6 +3,11 @@
     <ProjectReference Include="..\WorkshopBooker.Insurance.Domain\WorkshopBooker.Insurance.Domain.csproj" />
     <ProjectReference Include="..\WorkshopBooker.Insurance.Infrastructure\WorkshopBooker.Insurance.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\WorkshopBooker.Application\WorkshopBooker.Application.csproj" />
+    <ProjectReference Include="..\..\..\Core\WorkshopBooker.Core.Messaging\WorkshopBooker.Core.Messaging.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.10" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>

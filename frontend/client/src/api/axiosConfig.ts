@@ -2,7 +2,9 @@ import axios from 'axios'
 
 // Tworzymy instancję axios z domyślną konfiguracją
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_GATEWAY_URL || '/api',
+  baseURL: typeof window !== 'undefined' && (window as any).__NEXT_DATA__?.props?.apiGatewayUrl 
+    ? (window as any).__NEXT_DATA__.props.apiGatewayUrl 
+    : 'http://localhost:5197',
   headers: {
     'Content-Type': 'application/json'
   }

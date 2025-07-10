@@ -2,6 +2,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\WorkshopBooker.Domain\WorkshopBooker.Domain.csproj" />
+    <ProjectReference Include="..\Core\WorkshopBooker.Core.Common\WorkshopBooker.Core.Common.csproj" />
+    <ProjectReference Include="..\Core\WorkshopBooker.Core.Messaging\WorkshopBooker.Core.Messaging.csproj" />
   </ItemGroup>
 
   <ItemGroup>

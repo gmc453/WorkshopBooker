@@ -30,6 +30,7 @@ services:
       postgres:
         condition: service_healthy
 
+  # ✅ POPRAWKA: Workshop service na porcie 5100
   workshop-service:
     image: mcr.microsoft.com/dotnet/sdk:8.0
     container_name: workshop-service
@@ -41,11 +42,70 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: Server=postgres;Port=5432;Database=WorkshopDb;User Id=postgres;Password=twoje_haslo;
     ports:
-      - "5000:80"
+      - "5100:80"  # ✅ ZMIENIONO z 5000 na 5100
     depends_on:
       postgres:
         condition: service_healthy
 
+  # ✅ POPRAWKA: Emergency service z własną bazą
+  emergency-db:
+    image: postgres:13
+    container_name: emergency-db
+    environment:
+      POSTGRES_DB: emergency_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  emergency-service:
+    image: mcr.microsoft.com/dotnet/sdk:8.0
+    container_name: emergency-service
+    working_dir: /src
+    command: ["dotnet", "run", "--urls", "http://0.0.0.0:80", "--project", "Services/Emergency/WorkshopBooker.Emergency.Api/WorkshopBooker.Emergency.Api.csproj"]
+    volumes:
+      - ./src:/src
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__EmergencyConnection: Server=emergency-db;Port=5432;Database=emergency_db;User Id=admin;Password=password;
+    ports:
+      - "5001:80"  # ✅ POPRAWIONE
+    depends_on:
+      emergency-db:
+        condition: service_healthy
+
+  # ✅ POPRAWKA: Insurance service
+  insurance-service:
+    image: mcr.microsoft.com/dotnet/sdk:8.0
+    container_name: insurance-service
+    working_dir: /src
+    command: ["dotnet", "run", "--urls", "http://0.0.0.0:80", "--project", "Services/Insurance/WorkshopBooker.Insurance.Api/WorkshopBooker.Insurance.Api.csproj"]
+    volumes:
+      - ./src:/src
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+    ports:
+      - "5002:80"
+
+  # ✅ POPRAWKA: Legal service
+  legal-service:
+    image: mcr.microsoft.com/dotnet/sdk:8.0
+    container_name: legal-service
+    working_dir: /src
+    command: ["dotnet", "run", "--urls", "http://0.0.0.0:80", "--project", "Services/Legal/WorkshopBooker.Legal.Api/WorkshopBooker.Legal.Api.csproj"]
+    volumes:
+      - ./src:/src
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+    ports:
+      - "5003:80"
+
+  # ✅ POPRAWKA: API Gateway na porcie 5000
   api-gateway:
     image: mcr.microsoft.com/dotnet/sdk:8.0
     container_name: api-gateway
@@ -54,7 +114,7 @@ services:
     volumes:
       - ./src:/src
     ports:
-      - "5000:80"
+      - "5000:80"  # ✅ Gateway jako główny punkt wejścia
     depends_on:
       workshop-service:
         condition: service_started
@@ -74,7 +134,7 @@ services:
       - ./frontend/client:/app
     environment:
       API_GATEWAY_URL: http://api-gateway:80
-      NEXT_PUBLIC_API_GATEWAY_URL: http://api-gateway:80
+      NEXT_PUBLIC_API_GATEWAY_URL: http://localhost:5000  # ✅ POPRAWIONE
     ports:
       - "3000:3000"
     depends_on:
@@ -88,43 +148,6 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
     ports:
       - "9090:9090"
-
-  emergency-db:
-    image: postgres:13
-    environment:
-      POSTGRES_DB: emergency_db
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-    ports:
-      - "5434:5432"
-
-  emergency-service:
-    build: ./src/Services/Emergency/WorkshopBooker.Emergency.Api
-    ports:
-      - "5001:5001"
-    environment:
-      - ConnectionStrings__EmergencyConnection=Server=emergency-db;Port=5432;Database=emergency_db;User Id=admin;Password=password;
-      - ASPNETCORE_URLS=http://0.0.0.0:5001
-    depends_on:
-      - emergency-db
-
-  insurance-service:
-    build: ./src/Services/Insurance/WorkshopBooker.Insurance.Api
-    ports:
-      - "5002:5002"
-    environment:
-      - ASPNETCORE_URLS=http://0.0.0.0:5002
-    depends_on:
-      - workshop-service
-
-  legal-service:
-    build: ./src/Services/Legal/WorkshopBooker.Legal.Api
-    ports:
-      - "5003:5003"
-    environment:
-      - ASPNETCORE_URLS=http://0.0.0.0:5003
-    depends_on:
-      - workshop-service
 
 volumes:
   postgres_data:

@@ -1,16 +1,17 @@
 {
   "Routes": [
     {
-      "DownstreamPathTemplate": "/api/emergency/{everything}",
+      "DownstreamPathTemplate": "/api/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
           "Host": "emergency-service",
-          "Port": 5001
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/api/emergency/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"]
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"],
+      "Priority": 1
     },
     {
       "DownstreamPathTemplate": "/api/{everything}",
@@ -18,11 +19,12 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "insurance-service",
-          "Port": 5002
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/api/insurance/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"]
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"],
+      "Priority": 1
     },
     {
       "DownstreamPathTemplate": "/api/{everything}",
@@ -30,15 +32,16 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "legal-service",
-          "Port": 5003
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/api/legal/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"]
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"],
+      "Priority": 1
     },
     {
       "DownstreamPathTemplate": "/api/{everything}",
-      "DownstreamScheme": "http",
+      "DownstreamScheme": "http", 
       "DownstreamHostAndPorts": [
         {
           "Host": "workshop-service",
@@ -47,7 +50,7 @@
       ],
       "UpstreamPathTemplate": "/api/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"],
-      "Priority": 99
+      "Priority": 999
     }
   ],
   "GlobalConfiguration": {

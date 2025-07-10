@@ -13,4 +13,7 @@ export default defineConfig({
       ],
     },
   },
+  define: {
+    'process.env.NEXT_PUBLIC_API_GATEWAY_URL': JSON.stringify('http://localhost:5197')
+  }
 })

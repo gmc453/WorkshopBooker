@@ -93,6 +93,14 @@ public class GlobalAnalyticsController : ControllerBase
             var completedBookings = todaysBookings.Count(b => b.Status == BookingStatus.Completed);
             var canceledBookings = todaysBookings.Count(b => b.Status == BookingStatus.Canceled);
 
+            // Pobierz przychody z dzisiaj
+            var todaysRevenue = await _context.Bookings
+                .Where(b => userWorkshopIds.Contains(b.Slot.WorkshopId) && 
+                           b.Slot.StartTime >= today && 
+                           b.Slot.StartTime < tomorrow)
+                .Include(b => b.Service)
+                .SumAsync(b => b.Service != null ? b.Service.Price : 0);
+
             // Pobierz przychody z ostatniego tygodnia
             var weekAgo = today.AddDays(-7);
             var weeklyRevenue = await _context.Bookings
@@ -108,6 +116,7 @@ public class GlobalAnalyticsController : ControllerBase
                 pendingBookings = pendingBookings,
                 completedBookings = completedBookings,
                 canceledBookings = canceledBookings,
+                todaysRevenue = todaysRevenue,
                 weeklyRevenue = weeklyRevenue,
                 activeWorkshops = result.Value.TotalWorkshops,
                 avgRating = result.Value.AverageRating
