@@ -5,10 +5,10 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { Workshop } from "../types/workshop";
 import Link from "next/link";
-import { Search, MapPin, ArrowRight, Briefcase, Star, Clock, Calendar, X, AlertCircle, Filter, SlidersHorizontal } from 'lucide-react';
+import { Search, MapPin, ArrowRight, Briefcase, Star, Calendar, X, AlertCircle, SlidersHorizontal } from 'lucide-react';
 
-// ZMIEŃ PORT NA TEN, NA KTÓRYM DZIAŁA TWOJE API .NET!
-const API_URL = "http://localhost:5197/api/workshops"; 
+// ✅ POPRAWKA: Port 5000 zgodnie z docker-compose.yml
+const API_URL = "http://localhost:5000/api/workshops"; 
 
 interface WorkshopListProps {
     initialSearchTerm?: string;
@@ -34,7 +34,7 @@ export default function WorkshopList({ initialSearchTerm = '' }: WorkshopListPro
                 const response = await axios.get(`${API_URL}${searchTerm ? `?searchTerm=${encodeURIComponent(searchTerm)}` : ''}`);
                 setWorkshops(response.data);
                 setError(null);
-            } catch (err: any) {
+            } catch (err: unknown) {
                 setError("Nie udało się pobrać danych z serwera. Sprawdź, czy API jest uruchomione i czy CORS jest poprawnie skonfigurowany.");
                 console.error(err);
             } finally {

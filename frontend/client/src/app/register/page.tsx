@@ -28,7 +28,7 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const response = await apiClient.post("/api/auth/register", {
+      await apiClient.post("/api/auth/register", {
         email,
         password,
         firstName,
@@ -37,9 +37,9 @@ export default function RegisterPage() {
 
       // Po udanej rejestracji przekieruj na stronę logowania
       router.push("/login?registered=true");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(
-        err.response?.data?.message || "Wystąpił błąd podczas rejestracji"
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Wystąpił błąd podczas rejestracji"
       );
     } finally {
       setIsLoading(false);

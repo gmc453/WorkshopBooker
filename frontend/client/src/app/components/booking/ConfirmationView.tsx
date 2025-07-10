@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { CheckCircle, Calendar, Clock, Mail, ArrowRight, Home, Download, Printer, Star, Share2, Plus } from 'lucide-react';
+import { CheckCircle, Calendar, Clock, Mail, Home, Download, Printer, Star, Share2, Plus } from 'lucide-react';
 import { Slot, BookingFormData } from '../../../hooks/useBookingFlow';
 
 interface ConfirmationViewProps {

@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           setUserEmail(null)
           setUserRole(null)
         }
-      } catch (error) {
+      } catch {
         // Błędny token, wyloguj
         localStorage.removeItem('authToken')
         setToken(null)

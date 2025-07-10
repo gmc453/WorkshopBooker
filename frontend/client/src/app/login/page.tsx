@@ -27,9 +27,9 @@ export default function LoginPage() {
 
       login(response.data.token);
       router.push("/"); // Przekierowanie na stronę główną po zalogowaniu
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(
-        err.response?.data?.message || "Wystąpił błąd podczas logowania"
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Wystąpił błąd podczas logowania"
       );
     } finally {
       setIsLoading(false);

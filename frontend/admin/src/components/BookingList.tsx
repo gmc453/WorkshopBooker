@@ -115,7 +115,7 @@ const BookingList: FC<BookingListProps> = ({
   const filteredBookings = useMemo(() => {
     if (!bookingsData) return []
     
-    let filtered = bookingsData.filter(booking => {
+    const filtered = bookingsData.filter(booking => {
       // Filtrowanie po statusie
       if (statusFilter !== 'all') {
         if (booking.status.toString() !== statusFilter) {
@@ -197,7 +197,7 @@ const BookingList: FC<BookingListProps> = ({
     const maxVisiblePages = 5;
     
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
     
     // Dostosowanie, jeśli jesteśmy blisko końca
     if (endPage - startPage + 1 < maxVisiblePages) {
@@ -300,7 +300,7 @@ const BookingList: FC<BookingListProps> = ({
           message: 'Rezerwacja została potwierdzona',
           bookingId
         });
-      } catch (error) {
+      } catch {
         addNotification({
           type: 'error',
           message: 'Nie udało się potwierdzić rezerwacji',
@@ -322,7 +322,7 @@ const BookingList: FC<BookingListProps> = ({
           message: 'Rezerwacja została zakończona',
           bookingId
         });
-      } catch (error) {
+      } catch {
         addNotification({
           type: 'error',
           message: 'Nie udało się zakończyć rezerwacji',
@@ -344,7 +344,7 @@ const BookingList: FC<BookingListProps> = ({
           message: 'Rezerwacja została anulowana',
           bookingId
         });
-      } catch (error) {
+      } catch {
         addNotification({
           type: 'error',
           message: 'Nie udało się anulować rezerwacji',

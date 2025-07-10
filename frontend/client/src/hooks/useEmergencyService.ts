@@ -6,15 +6,25 @@ type EmergencyRequest = {
   location: string
 }
 
+interface EmergencyOperator {
+  id: string
+  name: string
+  [key: string]: unknown
+}
+
 export const useEmergencyService = () => {
-  const operators = useQuery(['emergency-operators'], async () => {
-    const res = await apiClient.get('/api/emergency/operators')
-    return res.data as any[]
+  const operators = useQuery({
+    queryKey: ['emergency-operators'],
+    queryFn: async () => {
+      const res = await apiClient.get('/api/emergency/operators')
+      return res.data as EmergencyOperator[]
+    }
   })
 
-  const requestAssist = useMutation((payload: EmergencyRequest) =>
-    apiClient.post('/api/emergency/requests', payload)
-  )
+  const requestAssist = useMutation({
+    mutationFn: (payload: EmergencyRequest) =>
+      apiClient.post('/api/emergency/requests', payload)
+  })
 
   return { operators, requestAssist }
 }

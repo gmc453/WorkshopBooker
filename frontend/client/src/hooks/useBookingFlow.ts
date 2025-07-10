@@ -30,25 +30,40 @@ export interface BookingFlowState {
 }
 
 // Helper function to convert technical errors to user-friendly messages
-const getUserFriendlyError = (error: any): string => {
-  if (error.response?.status === 409) {
-    return 'Ten termin został już zarezerwowany. Wybierz inny termin.';
+const getUserFriendlyError = (error: unknown): string => {
+  if (error && typeof error === 'object' && 'response' in error) {
+    const response = (error as { response?: { status?: number } }).response;
+    if (response?.status === 409) {
+      return 'Ten termin został już zarezerwowany. Wybierz inny termin.';
+    }
+    if (response?.status === 400) {
+      return 'Nieprawidłowe dane rezerwacji. Sprawdź wprowadzone informacje.';
+    }
+    if (response?.status === 404) {
+      return 'Usługa lub termin nie został znaleziony.';
+    }
+    if (response?.status && response.status >= 500) {
+      return 'Problem z serwerem. Spróbuj ponownie za chwilę.';
+    }
   }
-  if (error.response?.status === 400) {
-    return 'Nieprawidłowe dane rezerwacji. Sprawdź wprowadzone informacje.';
+  
+  if (error && typeof error === 'object' && 'code' in error) {
+    const code = (error as { code?: string }).code;
+    if (code === 'NETWORK_ERROR') {
+      return 'Problem z połączeniem internetowym. Sprawdź swoje połączenie.';
+    }
   }
-  if (error.response?.status === 404) {
-    return 'Usługa lub termin nie został znaleziony.';
+  
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = (error as { message?: string }).message;
+    if (message?.includes('Network Error')) {
+      return 'Problem z połączeniem internetowym. Sprawdź swoje połączenie.';
+    }
+    if (message?.includes('timeout')) {
+      return 'Żądanie przekroczyło limit czasu. Spróbuj ponownie.';
+    }
   }
-  if (error.response?.status >= 500) {
-    return 'Problem z serwerem. Spróbuj ponownie za chwilę.';
-  }
-  if (error.code === 'NETWORK_ERROR' || error.message?.includes('Network Error')) {
-    return 'Problem z połączeniem internetowym. Sprawdź swoje połączenie.';
-  }
-  if (error.message?.includes('timeout')) {
-    return 'Żądanie przekroczyło limit czasu. Spróbuj ponownie.';
-  }
+  
   return 'Wystąpił nieoczekiwany błąd. Spróbuj ponownie lub skontaktuj się z warsztatem.';
 };
 
@@ -130,7 +145,7 @@ export const useBookingFlow = (workshopId: string, serviceId: string) => {
         retryCount: 0
       }));
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       const userFriendlyError = getUserFriendlyError(error);
       setState(prev => ({ 
         ...prev, 
@@ -156,7 +171,7 @@ export const useBookingFlow = (workshopId: string, serviceId: string) => {
         slotId: nextAvailableSlot.id,
         formData: state.formData
       });
-    } catch (error) {
+    } catch {
       // Error handling is done in mutation
     }
   }, [nextAvailableSlot, state.formData, bookingMutation]);
@@ -179,7 +194,7 @@ export const useBookingFlow = (workshopId: string, serviceId: string) => {
         slotId: state.selectedSlot.id,
         formData: state.formData
       });
-    } catch (error) {
+    } catch {
       // Error handling is done in mutation
     }
   }, [state.selectedSlot, state.formData, bookingMutation]);
@@ -220,7 +235,7 @@ export const useBookingFlow = (workshopId: string, serviceId: string) => {
         slotId: state.selectedSlot.id,
         formData: state.formData
       });
-    } catch (error) {
+    } catch {
       // Error handling is done in mutation
     }
   }, [state.selectedSlot, state.formData, bookingMutation]);

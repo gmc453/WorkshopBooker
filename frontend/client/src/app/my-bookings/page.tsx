@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
-import { useMyBookings, Booking } from "../hooks/useMyBookings";
+import { useMyBookings } from "../hooks/useMyBookings";
 import { useCancelBooking } from "../../hooks/useCancelBooking";
 import { format, parseISO, differenceInMinutes, isAfter } from "date-fns";
 import { pl } from "date-fns/locale";
@@ -19,8 +19,7 @@ export default function MyBookingsPage() {
   // Hook do anulowania rezerwacji
   const { 
     mutate: cancelBooking, 
-    isPending: isCancelling, 
-    error: cancelError 
+    isPending: isCancelling
   } = useCancelBooking();
   
   // Stan dla filtrowania

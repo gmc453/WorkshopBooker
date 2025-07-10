@@ -6,13 +6,13 @@ import { useParams, useRouter } from "next/navigation";
 import { Service } from "../../types/workshop";
 import { BookingModal } from "../../components/BookingModal";
 import { useAuth } from "../../../context/AuthContext";
-import { MapPin, Clock, CreditCard, ArrowLeft, Star, Phone, Mail, Globe, ChevronRight, Briefcase, Calendar, Image, Users, Award } from "lucide-react";
+import { MapPin, Clock, CreditCard, ArrowLeft, Star, Phone, Mail, Globe, Briefcase, Calendar, Image, Users, Award } from "lucide-react";
 import Link from "next/link";
 import { Breadcrumbs } from "../../components/Breadcrumbs";
 
 export default function WorkshopDetailsPage() {
   const params = useParams();
-  const id = params.id as string;
+  const id = params?.id as string;
   const { workshop, loading, error } = useWorkshopDetails(id);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
