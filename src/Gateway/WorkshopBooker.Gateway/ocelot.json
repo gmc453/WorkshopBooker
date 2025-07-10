@@ -1,18 +1,6 @@
 {
   "Routes": [
     {
-      "DownstreamPathTemplate": "/api/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "workshop-service",
-          "Port": 80
-        }
-      ],
-      "UpstreamPathTemplate": "/api/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"]
-    },
-    {
       "DownstreamPathTemplate": "/api/emergency/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
@@ -47,6 +35,19 @@
       ],
       "UpstreamPathTemplate": "/api/legal/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"]
+    },
+    {
+      "DownstreamPathTemplate": "/api/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "workshop-service",
+          "Port": 80
+        }
+      ],
+      "UpstreamPathTemplate": "/api/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"],
+      "Priority": 99
     }
   ],
   "GlobalConfiguration": {
