@@ -12,7 +12,11 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -23,7 +27,76 @@ services:
     ports:
       - "8080:80"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+
+  workshop-service:
+    image: mcr.microsoft.com/dotnet/sdk:8.0
+    container_name: workshop-service
+    working_dir: /src
+    command: ["dotnet", "run", "--urls", "http://0.0.0.0:80", "--project", "WorkshopBooker.Api/WorkshopBooker.Api.csproj"]
+    volumes:
+      - ./src:/src
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Server=postgres;Port=5432;Database=WorkshopDb;User Id=postgres;Password=twoje_haslo;
+    ports:
+      - "5000:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  emergency-service:
+    image: mcr.microsoft.com/dotnet/sdk:8.0
+    container_name: emergency-service
+    working_dir: /src
+    command: ["dotnet", "run", "--urls", "http://0.0.0.0:80", "--project", "WorkshopBooker.Api/WorkshopBooker.Api.csproj"]
+    volumes:
+      - ./src:/src
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Server=postgres;Port=5432;Database=EmergencyDb;User Id=postgres;Password=twoje_haslo;
+    ports:
+      - "5001:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api-gateway:
+    image: nginx:alpine
+    container_name: api-gateway
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8088:80"
+    depends_on:
+      workshop-service:
+        condition: service_started
+      emergency-service:
+        condition: service_started
+
+  web-app:
+    image: node:18
+    container_name: web-app
+    working_dir: /app
+    command: ["npm", "run", "dev"]
+    volumes:
+      - ./frontend/client:/app
+    environment:
+      NEXT_PUBLIC_API_URL: http://api-gateway
+    ports:
+      - "3000:3000"
+    depends_on:
+      api-gateway:
+        condition: service_started
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
 
   emergency-db:
     image: postgres:13
