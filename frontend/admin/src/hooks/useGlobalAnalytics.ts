@@ -17,6 +17,7 @@ interface TodayStatsData {
   pendingBookings: number;
   completedBookings: number;
   canceledBookings: number;
+  todaysRevenue: number;
   weeklyRevenue: number;
   activeWorkshops: number;
   avgRating: number;

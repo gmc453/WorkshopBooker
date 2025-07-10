@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "WorkshopBooker.Insurance.Api": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:50560;http://localhost:50561"
+    }
+  }
+}

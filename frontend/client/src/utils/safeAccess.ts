@@ -6,19 +6,19 @@
 /**
  * Bezpiecznie pobiera wartość z obiektu z domyślną wartością
  */
-export function safeGet<T>(obj: any, path: string, defaultValue: T): T {
+export function safeGet<T>(obj: unknown, path: string, defaultValue: T): T {
   try {
     const keys = path.split('.');
-    let result = obj;
+    let result: unknown = obj;
     
     for (const key of keys) {
-      if (result == null || result[key] === undefined) {
+      if (result == null || (result as Record<string, unknown>)[key] === undefined) {
         return defaultValue;
       }
-      result = result[key];
+      result = (result as Record<string, unknown>)[key];
     }
     
-    return result ?? defaultValue;
+    return (result as T) ?? defaultValue;
   } catch {
     return defaultValue;
   }
@@ -27,7 +27,7 @@ export function safeGet<T>(obj: any, path: string, defaultValue: T): T {
 /**
  * Bezpiecznie pobiera wartość z obiektu z domyślną wartością dla liczby
  */
-export function safeGetNumber(obj: any, path: string, defaultValue: number = 0): number {
+export function safeGetNumber(obj: unknown, path: string, defaultValue: number = 0): number {
   const value = safeGet(obj, path, defaultValue);
   return typeof value === 'number' ? value : defaultValue;
 }
@@ -35,7 +35,7 @@ export function safeGetNumber(obj: any, path: string, defaultValue: number = 0):
 /**
  * Bezpiecznie pobiera wartość z obiektu z domyślną wartością dla stringa
  */
-export function safeGetString(obj: any, path: string, defaultValue: string = ''): string {
+export function safeGetString(obj: unknown, path: string, defaultValue: string = ''): string {
   const value = safeGet(obj, path, defaultValue);
   return typeof value === 'string' ? value : defaultValue;
 }
@@ -43,7 +43,7 @@ export function safeGetString(obj: any, path: string, defaultValue: string = '')
 /**
  * Bezpiecznie pobiera wartość z obiektu z domyślną wartością dla boolean
  */
-export function safeGetBoolean(obj: any, path: string, defaultValue: boolean = false): boolean {
+export function safeGetBoolean(obj: unknown, path: string, defaultValue: boolean = false): boolean {
   const value = safeGet(obj, path, defaultValue);
   return typeof value === 'boolean' ? value : defaultValue;
 }
@@ -51,7 +51,7 @@ export function safeGetBoolean(obj: any, path: string, defaultValue: boolean = f
 /**
  * Bezpiecznie pobiera wartość z obiektu z domyślną wartością dla tablicy
  */
-export function safeGetArray<T>(obj: any, path: string, defaultValue: T[] = []): T[] {
+export function safeGetArray<T>(obj: unknown, path: string, defaultValue: T[] = []): T[] {
   const value = safeGet(obj, path, defaultValue);
   return Array.isArray(value) ? value : defaultValue;
 }
@@ -59,11 +59,11 @@ export function safeGetArray<T>(obj: any, path: string, defaultValue: T[] = []):
 /**
  * Bezpiecznie formatuje datę
  */
-export function safeFormatDate(date: any, format: string = 'dd.MM.yyyy HH:mm'): string {
+export function safeFormatDate(date: unknown, format: string = 'dd.MM.yyyy HH:mm'): string {
   if (!date) return '-';
   
   try {
-    const dateObj = new Date(date);
+    const dateObj = new Date(date as string);
     if (isNaN(dateObj.getTime())) return '-';
     
     // Prosty formatter - można rozszerzyć o bardziej zaawansowane opcje
@@ -87,7 +87,7 @@ export function safeFormatDate(date: any, format: string = 'dd.MM.yyyy HH:mm'): 
 /**
  * Bezpiecznie formatuje cenę
  */
-export function safeFormatPrice(price: any, currency: string = 'PLN'): string {
+export function safeFormatPrice(price: unknown, currency: string = 'PLN'): string {
   // Jeśli price jest już liczbą, użyj jej bezpośrednio
   if (typeof price === 'number') {
     return `${price.toFixed(2)} ${currency}`;
@@ -112,7 +112,7 @@ export function safeFormatPrice(price: any, currency: string = 'PLN'): string {
 /**
  * Bezpiecznie formatuje czas trwania w minutach
  */
-export function safeFormatDuration(minutes: any): string {
+export function safeFormatDuration(minutes: unknown): string {
   // Jeśli minutes jest już liczbą, użyj jej bezpośrednio
   if (typeof minutes === 'number') {
     const numMinutes = minutes;
@@ -173,16 +173,16 @@ export function safeFormatDuration(minutes: any): string {
 /**
  * Bezpiecznie sprawdza czy obiekt ma określoną właściwość
  */
-export function safeHas(obj: any, path: string): boolean {
+export function safeHas(obj: unknown, path: string): boolean {
   try {
     const keys = path.split('.');
     let result = obj;
     
     for (const key of keys) {
-      if (result == null || !(key in result)) {
+      if (result == null || !(key in (result as Record<string, unknown>))) {
         return false;
       }
-      result = result[key];
+      result = (result as Record<string, unknown>)[key];
     }
     
     return true;

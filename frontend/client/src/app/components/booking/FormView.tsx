@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, User, Mail, Phone, FileText, Calendar, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowLeft, User, Mail, Phone, FileText, Calendar, CheckCircle, AlertCircle } from 'lucide-react';
 import { Slot, BookingFormData } from '../../../hooks/useBookingFlow';
 
 interface FormViewProps {

@@ -7,9 +7,9 @@ const showRateLimitNotification = (info: any) => {
   // Tutaj możesz dodać toast notification
 };
 
-// Ustawiam prawidłowy adres API - port 5197 jest poprawny zgodnie z konfiguracją backendu
+// ✅ POPRAWKA: Ustawiam prawidłowy adres API Gateway - port 5000 zgodnie z docker-compose.yml
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_GATEWAY_URL || '/api',
+  baseURL: 'http://localhost:5000',
   headers: {
     'Content-Type': 'application/json'
   }

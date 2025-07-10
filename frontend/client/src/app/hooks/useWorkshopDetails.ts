@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { Workshop } from "../types/workshop";
 
-const API_URL = "http://localhost:5197/api/workshops";
+// ✅ POPRAWKA: Port 5000 zgodnie z docker-compose.yml
+const API_URL = "http://localhost:5000/api/workshops";
 
 export function useWorkshopDetails(id: string) {
   const [workshop, setWorkshop] = useState<Workshop | null>(null);
@@ -18,7 +19,7 @@ export function useWorkshopDetails(id: string) {
         const response = await axios.get(`${API_URL}/${id}`);
         setWorkshop(response.data);
         setError(null);
-      } catch (err: any) {
+      } catch (err: unknown) {
         setError(
           "Nie udało się pobrać szczegółów warsztatu. Sprawdź, czy API jest uruchomione."
         );

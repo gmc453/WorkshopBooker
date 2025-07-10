@@ -9,9 +9,24 @@ services:
   emergency-service:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-    command: ["dotnet", "watch", "--project", "WorkshopBooker.Api/WorkshopBooker.Api.csproj"]
+    command: ["dotnet", "watch", "--project", "Services/Emergency/WorkshopBooker.Emergency.Api/WorkshopBooker.Emergency.Api.csproj"]
+
+  insurance-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    command: ["dotnet", "watch", "--project", "Services/Insurance/WorkshopBooker.Insurance.Api/WorkshopBooker.Insurance.Api.csproj"]
+
+  legal-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    command: ["dotnet", "watch", "--project", "Services/Legal/WorkshopBooker.Legal.Api/WorkshopBooker.Legal.Api.csproj"]
+
+  api-gateway:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    command: ["dotnet", "watch", "--project", "Gateway/WorkshopBooker.Gateway/WorkshopBooker.Gateway.csproj"]
 
   web-app:
     command: ["npm", "run", "dev"]
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8088
+      - NEXT_PUBLIC_API_URL=http://localhost:5000

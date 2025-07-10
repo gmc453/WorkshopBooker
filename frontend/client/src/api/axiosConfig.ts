@@ -1,8 +1,18 @@
 import axios from 'axios'
 
-// Tworzymy instancję axios z domyślną konfiguracją
+// ✅ POPRAWKA: Używam prawidłowego sposobu obsługi zmiennych środowiskowych w Next.js
+const getApiBaseUrl = () => {
+  // W środowisku przeglądarki sprawdzamy zmienną środowiskową
+  if (typeof window !== 'undefined') {
+    return process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:5000'
+  }
+  // W środowisku serwera używamy domyślnego URL
+  return process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:5000'
+}
+
+// Tworzymy instancję axios z poprawioną konfiguracją
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_GATEWAY_URL || '/api',
+  baseURL: getApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json'
   }

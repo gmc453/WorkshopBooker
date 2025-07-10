@@ -8,6 +8,12 @@ interface CancelBookingResponse {
   message: string
 }
 
+interface Booking {
+  id: string
+  status: number
+  [key: string]: unknown
+}
+
 export const useCancelBooking = () => {
   const queryClient = useQueryClient()
   const { token } = useAuth()
@@ -38,7 +44,7 @@ export const useCancelBooking = () => {
         }
         
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || 'Nie udało się anulować rezerwacji')
+        throw new Error((errorData as { message?: string }).message || 'Nie udało się anulować rezerwacji')
       }
 
       return { success: true, message: 'Rezerwacja została anulowana' }
@@ -46,10 +52,10 @@ export const useCancelBooking = () => {
     
     onSuccess: (_data, bookingId) => {
       // Aktualizuj cache dla "Moje rezerwacje"
-      queryClient.setQueryData(['my-bookings'], (oldData: any) => {
-        if (!oldData) return oldData
+      queryClient.setQueryData(['my-bookings'], (oldData: unknown) => {
+        if (!oldData || !Array.isArray(oldData)) return oldData
         
-        return oldData.map((booking: any) => {
+        return (oldData as Booking[]).map((booking: Booking) => {
           if (booking.id === bookingId) {
             return { ...booking, status: 3 } // 3 = Canceled
           }

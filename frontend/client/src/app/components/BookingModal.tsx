@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import React from 'react';
+import { X, Calendar } from 'lucide-react';
 import { useBookingFlow } from '../../hooks/useBookingFlow';
 import { CalendarView } from './booking/CalendarView';
 import { FormView } from './booking/FormView';

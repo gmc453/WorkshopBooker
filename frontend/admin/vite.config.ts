@@ -13,4 +13,8 @@ export default defineConfig({
       ],
     },
   },
+  define: {
+    // ✅ POPRAWKA: Ustawiam prawidłowy adres API Gateway - port 5000 zgodnie z docker-compose.yml
+    'process.env.NEXT_PUBLIC_API_GATEWAY_URL': JSON.stringify('http://localhost:5000')
+  }
 })

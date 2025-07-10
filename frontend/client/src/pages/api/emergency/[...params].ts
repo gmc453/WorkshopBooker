@@ -9,7 +9,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const fetchRes = await fetch(target, {
       method: req.method,
-      headers: { 'Content-Type': 'application/json', ...(req.headers as any) },
+      headers: { 'Content-Type': 'application/json', ...(req.headers as Record<string, string>) },
       body: ['GET', 'HEAD'].includes(req.method || '') ? undefined : JSON.stringify(req.body)
     })
     const data = await fetchRes.text()

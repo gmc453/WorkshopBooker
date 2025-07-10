@@ -5,12 +5,52 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "api",
+          "Host": "emergency-service",
+          "Port": 80
+        }
+      ],
+      "UpstreamPathTemplate": "/api/emergency/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"],
+      "Priority": 1
+    },
+    {
+      "DownstreamPathTemplate": "/api/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "insurance-service",
+          "Port": 80
+        }
+      ],
+      "UpstreamPathTemplate": "/api/insurance/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"],
+      "Priority": 1
+    },
+    {
+      "DownstreamPathTemplate": "/api/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "legal-service",
+          "Port": 80
+        }
+      ],
+      "UpstreamPathTemplate": "/api/legal/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"],
+      "Priority": 1
+    },
+    {
+      "DownstreamPathTemplate": "/api/{everything}",
+      "DownstreamScheme": "http", 
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "workshop-service",
           "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/api/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"]
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"],
+      "Priority": 999
     }
   ],
   "GlobalConfiguration": {
