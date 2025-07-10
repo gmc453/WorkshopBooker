@@ -98,5 +98,24 @@ services:
     ports:
       - "9090:9090"
 
+  emergency-db:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: emergency_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5434:5432"
+
+  emergency-service:
+    build: ./src/Services/Emergency/WorkshopBooker.Emergency.Api
+    ports:
+      - "5001:5001"
+    environment:
+      - ConnectionStrings__EmergencyConnection=Server=emergency-db;Port=5432;Database=emergency_db;User Id=admin;Password=password;
+      - ASPNETCORE_URLS=http://0.0.0.0:5001
+    depends_on:
+      - emergency-db
+
 volumes:
   postgres_data:
