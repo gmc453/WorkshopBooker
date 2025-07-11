@@ -1,6 +1,7 @@
 ﻿// src/WorkshopBooker.Application/Workshops/Commands/UpdateWorkshop/UpdateWorkshopCommandHandler.cs
 using MediatR;
 using WorkshopBooker.Application.Common;
+using WorkshopBooker.Application.Common.Interfaces;
 
 namespace WorkshopBooker.Application.Workshops.Commands.UpdateWorkshop;
 

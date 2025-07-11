@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using WorkshopBooker.Application.Common.Interfaces;
 using WorkshopBooker.Application.Common.Exceptions;
 using WorkshopBooker.Domain.Entities;
+using UnauthorizedAccessException = WorkshopBooker.Application.Common.Exceptions.UnauthorizedAccessException;
 
 namespace WorkshopBooker.Application.Common;
 
@@ -24,12 +25,12 @@ public abstract class BaseCommandHandler
     /// </summary>
     /// <returns>ID zalogowanego użytkownika</returns>
     /// <exception cref="UnauthenticatedUserException">Gdy użytkownik nie jest zalogowany</exception>
-    protected string GetAuthenticatedUserId()
+    protected Guid GetAuthenticatedUserId()
     {
         var userId = _currentUserProvider.UserId;
-        if (string.IsNullOrEmpty(userId))
+        if (!userId.HasValue)
             throw new UnauthenticatedUserException();
-        return userId;
+        return userId.Value;
     }
     
     /// <summary>
@@ -49,7 +50,7 @@ public abstract class BaseCommandHandler
         if (workshop == null)
             throw new WorkshopNotFoundException();
             
-        if (workshop.UserId != userId)
+        if (workshop.UserId == null || workshop.UserId.Value != userId)
             throw new UnauthorizedAccessException("Brak uprawnień do edycji tego warsztatu");
             
         return workshop;
@@ -73,7 +74,7 @@ public abstract class BaseCommandHandler
         if (service == null)
             throw new ServiceNotFoundException();
             
-        if (service.Workshop.UserId != userId)
+        if (service.Workshop.UserId == null || service.Workshop.UserId.Value != userId)
             throw new UnauthorizedAccessException("Brak uprawnień do edycji tej usługi");
             
         return service;

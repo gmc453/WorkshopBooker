@@ -126,14 +126,6 @@ public static class ServiceCollectionExtensions
                     Array.Empty<string>()
                 }
             });
-            
-            // Dodaj NSwag dla generowania typów TypeScript
-            c.PostProcess = document =>
-            {
-                document.Info.Title = "WorkshopBooker API";
-                document.Info.Version = "v1";
-                document.Info.Description = "API dla systemu rezerwacji warsztatów samochodowych";
-            };
         });
         
         return services;

@@ -4,6 +4,7 @@ using WorkshopBooker.Infrastructure;
 using System.Threading.RateLimiting;
 using WorkshopBooker.Application.Common.Interfaces;
 using System.Text.Json;
+using WorkshopBooker.Application.Common.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
