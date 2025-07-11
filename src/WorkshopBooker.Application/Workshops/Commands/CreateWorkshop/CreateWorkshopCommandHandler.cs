@@ -1,26 +1,22 @@
 ﻿// src/WorkshopBooker.Application/Workshops/Commands/CreateWorkshop/CreateWorkshopCommandHandler.cs
 using MediatR;
-using WorkshopBooker.Application.Common.Interfaces;
 using WorkshopBooker.Application.Common;
-using WorkshopBooker.Application.Common.Exceptions;
+using WorkshopBooker.Application.Common.Interfaces;
 using WorkshopBooker.Domain.Entities;
 using Microsoft.Extensions.Logging;
 
 namespace WorkshopBooker.Application.Workshops.Commands.CreateWorkshop;
 
-public class CreateWorkshopCommandHandler : IRequestHandler<CreateWorkshopCommand, Result<Guid>>
+public class CreateWorkshopCommandHandler : BaseCommandHandler, IRequestHandler<CreateWorkshopCommand, Result<Guid>>
 {
-    private readonly IApplicationDbContext _context;
-    private readonly ICurrentUserProvider _currentUserProvider;
     private readonly ILogger<CreateWorkshopCommandHandler> _logger;
 
     public CreateWorkshopCommandHandler(
         IApplicationDbContext context, 
         ICurrentUserProvider currentUserProvider,
         ILogger<CreateWorkshopCommandHandler> logger)
+        : base(context, currentUserProvider)
     {
-        _context = context;
-        _currentUserProvider = currentUserProvider;
         _logger = logger;
     }
 
@@ -29,10 +25,7 @@ public class CreateWorkshopCommandHandler : IRequestHandler<CreateWorkshopComman
         try
         {
             // Sprawdź czy użytkownik jest zalogowany
-            if (_currentUserProvider.UserId is null)
-            {
-                return Result<Guid>.Failure("Użytkownik musi być zalogowany");
-            }
+            var userId = GetAuthenticatedUserId();
 
             _logger.LogInformation("Tworzenie nowego warsztatu: {WorkshopName}", request.Name);
 
@@ -55,7 +48,7 @@ public class CreateWorkshopCommandHandler : IRequestHandler<CreateWorkshopComman
             workshop.SetContactData(request.PhoneNumber, request.Email, request.Address);
 
             // Przypisz właściciela warsztatu
-            workshop.AssignOwner(_currentUserProvider.UserId.Value);
+            workshop.AssignOwner(userId);
 
             // Dodaj encję do kontekstu bazy danych
             _context.Workshops.Add(workshop);

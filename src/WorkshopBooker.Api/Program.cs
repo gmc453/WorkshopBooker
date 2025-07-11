@@ -7,6 +7,13 @@ using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Konfiguracja z environment variables i user secrets
+builder.Configuration
+    .AddJsonFile("appsettings.json")
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
+    .AddEnvironmentVariables()
+    .AddUserSecrets<Program>(optional: true);
+
 // Add services to the container.
 builder.Services.AddPersistence(builder.Configuration);
 builder.Services.AddAuthentication(builder.Configuration);
@@ -14,6 +21,10 @@ builder.Services.AddApplicationServices();
 builder.Services.AddCorsPolicy();
 builder.Services.AddSwaggerWithJwt();
 builder.Services.AddInfrastructure();
+
+// Dodaj Memory Cache dla analytics
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<IAnalyticsCacheService, AnalyticsCacheService>();
 
 // Professional Rate Limiting Configuration
 builder.Services.AddRateLimiter(options =>

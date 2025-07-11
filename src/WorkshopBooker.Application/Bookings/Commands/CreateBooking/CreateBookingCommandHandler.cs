@@ -105,38 +105,42 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
 
         try
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId.Value, cancellationToken);
-            if (user != null)
-            {
-                var service = await _context.Services
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(s => s.Id == request.ServiceId, cancellationToken);
-
-                if (service != null)
+            // Zoptymalizowane zapytanie - pobierz wszystkie potrzebne dane w jednym zapytaniu
+            var notificationData = await _context.Users
+                .Where(u => u.Id == userId.Value)
+                .Select(u => new
                 {
-                    var slotData = await _context.AvailableSlots
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(s => s.Id == request.SlotId, cancellationToken);
+                    User = u,
+                    Service = _context.Services
+                        .Where(s => s.Id == request.ServiceId)
+                        .Select(s => new { s.Name, s.Price })
+                        .FirstOrDefault(),
+                    Slot = _context.AvailableSlots
+                        .Where(s => s.Id == request.SlotId)
+                        .Select(s => new { s.StartTime, s.EndTime })
+                        .FirstOrDefault()
+                })
+                .FirstOrDefaultAsync(cancellationToken);
 
-                    if (slotData != null)
-                    {
-                        var bookingDto = new BookingDto
-                        {
-                            Id = bookingId,
-                            SlotStartTime = slotData.StartTime,
-                            SlotEndTime = slotData.EndTime,
-                            ServiceName = service.Name,
-                            ServicePrice = service.Price,
-                            ServiceId = request.ServiceId,
-                            Status = Domain.Entities.BookingStatus.Requested
-                        };
+            if (notificationData?.User != null && 
+                notificationData.Service != null && 
+                notificationData.Slot != null)
+            {
+                var bookingDto = new BookingDto
+                {
+                    Id = bookingId,
+                    SlotStartTime = notificationData.Slot.StartTime,
+                    SlotEndTime = notificationData.Slot.EndTime,
+                    ServiceName = notificationData.Service.Name,
+                    ServicePrice = notificationData.Service.Price,
+                    ServiceId = request.ServiceId,
+                    Status = Domain.Entities.BookingStatus.Requested
+                };
 
-                        await _notificationService.SendBookingConfirmationAsync(
-                            user.Email,
-                            user.FirstName,
-                            bookingDto);
-                    }
-                }
+                await _notificationService.SendBookingConfirmationAsync(
+                    notificationData.User.Email,
+                    notificationData.User.FirstName,
+                    bookingDto);
             }
         }
         catch (Exception notificationEx)

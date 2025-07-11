@@ -93,7 +93,13 @@ public static class ServiceCollectionExtensions
             c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo 
             { 
                 Title = "WorkshopBooker API", 
-                Version = "v1" 
+                Version = "v1",
+                Description = "API dla systemu rezerwacji warsztatów samochodowych",
+                Contact = new Microsoft.OpenApi.Models.OpenApiContact
+                {
+                    Name = "WorkshopBooker Team",
+                    Email = "support@workshopbooker.com"
+                }
             });
 
             c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
@@ -120,6 +126,14 @@ public static class ServiceCollectionExtensions
                     Array.Empty<string>()
                 }
             });
+            
+            // Dodaj NSwag dla generowania typów TypeScript
+            c.PostProcess = document =>
+            {
+                document.Info.Title = "WorkshopBooker API";
+                document.Info.Version = "v1";
+                document.Info.Description = "API dla systemu rezerwacji warsztatów samochodowych";
+            };
         });
         
         return services;

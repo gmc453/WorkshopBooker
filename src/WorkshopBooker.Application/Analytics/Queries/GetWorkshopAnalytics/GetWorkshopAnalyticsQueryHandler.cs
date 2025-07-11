@@ -10,11 +10,16 @@ public class GetWorkshopAnalyticsQueryHandler : IRequestHandler<GetWorkshopAnaly
 {
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserProvider _currentUserProvider;
+    private readonly IAnalyticsCacheService _cacheService;
 
-    public GetWorkshopAnalyticsQueryHandler(IApplicationDbContext context, ICurrentUserProvider currentUserProvider)
+    public GetWorkshopAnalyticsQueryHandler(
+        IApplicationDbContext context, 
+        ICurrentUserProvider currentUserProvider,
+        IAnalyticsCacheService cacheService)
     {
         _context = context;
         _currentUserProvider = currentUserProvider;
+        _cacheService = cacheService;
     }
 
     public async Task<Result<WorkshopAnalyticsDto>> Handle(GetWorkshopAnalyticsQuery request, CancellationToken cancellationToken)
@@ -30,6 +35,21 @@ public class GetWorkshopAnalyticsQueryHandler : IRequestHandler<GetWorkshopAnaly
         if (workshop == null)
             return Result<WorkshopAnalyticsDto>.Failure("Warsztat nie został znaleziony");
 
+        // Użyj cache dla analytics
+        var cacheKey = $"analytics:{request.WorkshopId}:{request.StartDate:yyyyMMdd}:{request.EndDate:yyyyMMdd}";
+        
+        return await _cacheService.GetOrCreateAsync(
+            cacheKey,
+            async () => await CalculateAnalyticsAsync(request, workshop, cancellationToken),
+            TimeSpan.FromMinutes(10)
+        );
+    }
+    
+    private async Task<Result<WorkshopAnalyticsDto>> CalculateAnalyticsAsync(
+        GetWorkshopAnalyticsQuery request, 
+        Domain.Entities.Workshop workshop, 
+        CancellationToken cancellationToken)
+    {
         // Pobierz rezerwacje w danym okresie
         var bookings = await _context.Bookings
             .Where(b => b.Slot.WorkshopId == request.WorkshopId && 
